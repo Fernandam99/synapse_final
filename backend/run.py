@@ -1,4 +1,4 @@
-from backend.app import create_app
+from backend.app.models import create_app
 from backend.models import db
 from flask_migrate import Migrate
 import os

@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models import db, Usuario, Rol
+from ..models import db, Usuario, Rol
+from ..utils.validators import validate_email, validate_password
 from datetime import datetime
 
 auth_bp = Blueprint('auth', __name__)
@@ -12,15 +13,25 @@ def register():
         data = request.get_json()
 
         # Validar campos requeridos
-        if not data.get('Username') or not data.get('correo') or not data.get('password'):
+        if not data.get('username') or not data.get('correo') or not data.get('password'):
             return jsonify({'error': 'Username, email y contraseña son requeridos'}), 400
 
+        # Validar formato de email
+        email_valid, email_msg =validate_email(data['correo'])
+        if not email_valid:
+            return jsonify({'error': email_msg}), 400
+        
+        # Validar fortaleza de contraseña
+        password_valid, password_msg = validate_password(data['password'])
+        if not password_valid:
+            return jsonify({'error': password_msg}), 400
+        
         # Verificar si el email ya existe
         if Usuario.query.filter_by(correo=data['correo']).first():
             return jsonify({'error': 'El email ya está registrado'}), 400
 
         # Verificar si el username ya existe
-        if Usuario.query.filter_by(Username=data['Username']).first():
+        if Usuario.query.filter_by(username=data['username']).first():
             return jsonify({'error': 'El username ya está registrado'}), 400
 
         # Obtener rol por defecto (usuario)
@@ -30,7 +41,7 @@ def register():
 
         # Crear nuevo usuario
         nuevo_usuario = Usuario(
-            Username=data['Username'],
+            username=data['username'],
             correo=data['correo'],
             password=generate_password_hash(data['password']),
             rol_id=rol_usuario.id

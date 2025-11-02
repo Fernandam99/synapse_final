@@ -4,8 +4,8 @@ import os
 # Agrega la raíz del proyecto al path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from backend.app import create_app
-from backend.models import db, Rol, Tecnica, Recompensa
+from app.models import create_app
+from app.models import db, Rol, Tecnica, Recompensa
 import json
 
 app = create_app()

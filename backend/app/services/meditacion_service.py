@@ -1,5 +1,5 @@
 # services/meditacion_service.py
-from ..models import db, Sesion, Tecnica, SesionTecnicaParam
+from app.models import db, Sesion, Tecnica, SesionTecnicaParam
 from datetime import datetime
 
 class MeditacionService:
