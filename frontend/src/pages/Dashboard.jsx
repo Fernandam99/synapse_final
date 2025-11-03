@@ -7,9 +7,8 @@ import {
   BarChart, Bar, XAxis, YAxis, LineChart, Line
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']; 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-// deterministic color per task id (HSL based on id hash) to give each task a unique color
 function colorForId(id) {
   const s = id?.toString() || '';
   let hash = 0;
@@ -19,110 +18,140 @@ function colorForId(id) {
 }
 
 export default function Dashboard() {
-  const usuario = getUsuario(); 
-  const [tareas, setTareas] = useState([]); 
-  const [loading, setLoading] = useState(false); 
-  const [error, setError] = useState(''); 
-  const [form, setForm] = useState({ 
-    titulo: '', descripcion: '', fecha_vencimiento: '', 
-    prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' 
-  }); 
-  const [editingId, setEditingId] = useState(null); 
-  const [stats, setStats] = useState(null); 
+  const usuario = getUsuario();
+  const [tareas, setTareas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  // Elimine 'estado' del estado inicial
+  const [form, setForm] = useState({
+    titulo: '', descripcion: '', fecha_vencimiento: '',
+    prioridad: 'baja', comentario: '', sala_id: ''
+  });
+  const [editingId, setEditingId] = useState(null);
+  const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ estado: '', prioridad: '' });
 
   useEffect(() => {
-    fetchAll(); 
-    if (getToken()) fetchStats(); 
-  }, []); 
-  function handleLogout() {
-    logout(); // Elimina el token y los datos del usuario
-    // Redirigir usando location para evitar dependencia de navigate
-    window.location.href = '/login'; // Redirige a la página de login
-  }
+    fetchAll();
+    if (getToken()) fetchStats();
+  }, []);
 
   async function fetchAll() {
-    setLoading(true); 
+    setLoading(true);
     setError('');
     try {
-      const q = new URLSearchParams(filters).toString(); 
-      const path = cfg.paths.tareas + (q ? ('?' + q) : ''); 
-      const res = await api.get(path); 
+      const q = new URLSearchParams(filters).toString();
+      const path = cfg.paths.tareas + (q ? ('?' + q) : '');
+      const res = await api.get(path);
       setTareas(Array.isArray(res.data) ? res.data : res.data.results || []);
     } catch (e) {
-      console.error(e); 
-      setError('Error cargando tareas: ' + (e.response?.data || e.message));
-    } 
-    setLoading(false); 
-  } 
+      console.error(e);
+      setError('Error cargando tareas: ' + (e.response?.data?.message || e.response?.data?.error || e.message));
+    }
+    setLoading(false);
+  }
 
   async function fetchStats() {
     try {
-      const res = await api.get(cfg.paths.estadisticas); 
-      setStats(res.data); 
+      const res = await api.get(cfg.paths.estadisticas);
+      setStats(res.data);
     } catch (e) {
-      if (e?.response?.status === 401) return; // ignore unauthorized
+      if (e?.response?.status === 401) return;
       console.error(e);
     }
   }
 
   async function handleCreateOrUpdate(e) {
-    e.preventDefault(); 
-    setError(''); 
+    e.preventDefault();
+    setError('');
+
+    if (!form.fecha_vencimiento) {
+      setError('La fecha de vencimiento es requerida');
+      return;
+    }
+
     try {
-      const payload = { ...form }; 
-      if (editingId) { 
-        await api.put(`${cfg.paths.tareas}/${editingId}`, payload); 
-      } else { 
-        await api.post(cfg.paths.tareas, payload); 
+      // NO inclui 'estado' en el payload al crear
+      const payload = {
+        titulo: form.titulo.trim(),
+        descripcion: form.descripcion?.trim() || '',
+        fecha_vencimiento: form.fecha_vencimiento,
+        prioridad: form.prioridad,
+        comentario: form.comentario?.trim() || '',
+      };
+
+      if (form.sala_id && form.sala_id.trim() !== '') {
+        payload.sala_id = form.sala_id.trim();
       }
-      setForm({ 
-        titulo: '', descripcion: '', fecha_vencimiento: '', 
-        prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' 
-      }); 
-      setEditingId(null); 
-      await fetchAll(); 
-      await fetchStats(); 
+
+      if (editingId) {
+        //   Solo al editar, inclui el estado
+        payload.estado = form.estado;
+        await api.put(`${cfg.paths.tareas}/${editingId}`, payload);
+      } else {
+        await api.post(cfg.paths.tareas, payload);
+      }
+
+      //  Reset sin 'estado'
+      setForm({
+        titulo: '',
+        descripcion: '',
+        fecha_vencimiento: '',
+        prioridad: 'baja',
+        comentario: '',
+        sala_id: ''
+      });
+      setEditingId(null);
+      await fetchAll();
+      await fetchStats();
     } catch (e) {
-      console.error(e); 
-      setError('Error guardando tarea: ' + (e.response?.data || e.message));
-    } 
+      console.error('Error completo:', e);
+      const errorMsg =
+        e.response?.data?.error ||
+        e.response?.data?.message ||
+        e.message ||
+        'Error desconocido al guardar la tarea';
+      setError('Error guardando tarea: ' + errorMsg);
+    }
   }
 
   function startEdit(t) {
-    setEditingId(t.id_tarea); 
-    setForm({ 
-      titulo: t.titulo || '', descripcion: t.descripcion || '', 
-      fecha_vencimiento: t.fecha_vencimiento || '', 
-      prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente', 
-      comentario: t.comentario || '', sala_id: t.sala_id || '' 
-    }); 
+    setEditingId(t.id_tarea);
+    //   Al editar, sí cargue el estado
+    setForm({
+      titulo: t.titulo || '',
+      descripcion: t.descripcion || '',
+      fecha_vencimiento: t.fecha_vencimiento || '',
+      prioridad: t.prioridad || 'baja',
+      estado: t.estado || 'Pendiente', //  inclui estado solo en edición
+      comentario: t.comentario || '',
+      sala_id: t.sala_id || ''
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('¿Eliminar tarea?')) return; 
+    if (!window.confirm('¿Eliminar tarea?')) return;
     try {
-      await api.delete(`${cfg.paths.tareas}/${id}`); 
-      await fetchAll(); 
-      await fetchStats(); 
+      await api.delete(`${cfg.paths.tareas}/${id}`);
+      await fetchAll();
+      await fetchStats();
     } catch (e) {
-      console.error(e); 
-      setError('Error eliminando: ' + (e.response?.data || e.message));
-    } 
+      console.error(e);
+      setError('Error eliminando: ' + (e.response?.data?.message || e.response?.data?.error || e.message));
+    }
   }
-  // Valores defensivos para evitar errores si stats o tareas son undefined
+
+  // --- resto del código (gráficos, etc.) ---
   const safeStats = stats || {};
   const monthlyData = Array.isArray(safeStats.monthly) ? safeStats.monthly : [];
   const recientesData = Array.isArray(safeStats.recientes) ? safeStats.recientes : [];
   const porPrioridad = safeStats.por_prioridad || { alta: 0, media: 0, baja: 0 };
   const safeTareas = Array.isArray(tareas) ? tareas : [];
 
-  // Build a color map for tasks
   const taskColors = {};
   safeTareas.forEach(t => { taskColors[t.id_tarea] = colorForId(t.id_tarea); });
 
-  // Group tasks by estado and count priorities for stacked bar
   const estadoOrder = ['Pendiente', 'EnProgreso', 'EnEspera', 'Completado'];
   const prioridadKeys = ['alta', 'media', 'baja'];
   const grouped = {};
@@ -135,14 +164,12 @@ export default function Dashboard() {
   });
   const groupedData = Object.values(grouped);
 
-  // Data for per-task bars (each task gets a bar of value 1, colored uniquely)
-  // Sort tasks by estado then prioridad to 'reorganize' them visually
   const priorityRank = { alta: 0, media: 1, baja: 2 };
   const estadoRank = { Pendiente: 0, EnProgreso: 1, EnEspera: 2, Completado: 3 };
-  const taskBars = safeTareas.slice().sort((a,b) => {
+  const taskBars = safeTareas.slice().sort((a, b) => {
     const ea = estadoRank[a.estado] ?? 99; const eb = estadoRank[b.estado] ?? 99;
     if (ea !== eb) return ea - eb;
-    const pa = priorityRank[(a.prioridad||'baja').toLowerCase()] ?? 9; const pb = priorityRank[(b.prioridad||'baja').toLowerCase()] ?? 9;
+    const pa = priorityRank[(a.prioridad || 'baja').toLowerCase()] ?? 9; const pb = priorityRank[(b.prioridad || 'baja').toLowerCase()] ?? 9;
     if (pa !== pb) return pa - pb;
     return (a.titulo || '').localeCompare(b.titulo || '');
   }).map(t => ({ id: t.id_tarea, titulo: t.titulo || ('#' + t.id_tarea), count: 1, color: taskColors[t.id_tarea] }));
@@ -152,9 +179,24 @@ export default function Dashboard() {
       <div className="dashboard-grid">
         <div className="dashboard-left">
           <div className="left-form card">
-            {/* Header */}
             <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-gradient)', padding: '10px 14px', borderRadius: 8, color: '#ffffff' }}>
               <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {usuario?.nombre_completo || usuario?.Username || usuario?.name || 'Usuario'}</h2>
+              <button
+                onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+                }}
+                style={{
+                  backgroundColor: '#8b3c86ff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cerrar sesión
+              </button>
             </div>
 
             <form onSubmit={handleCreateOrUpdate} style={{ marginTop: 12 }}>
@@ -163,20 +205,28 @@ export default function Dashboard() {
               <label>Descripción</label>
               <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
               <label>Fecha vencimiento</label>
-              <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} />
+              <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} required />
+
               <label>Prioridad</label>
               <select value={form.prioridad} onChange={e => setForm({ ...form, prioridad: e.target.value })}>
                 <option value="baja">baja</option>
                 <option value="media">media</option>
                 <option value="alta">alta</option>
               </select>
-              <label>Estado</label>
-              <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
-                <option value="Pendiente">Pendiente</option>
-                <option value="EnProgreso">EnProgreso</option>
-                <option value="EnEspera">EnEspera</option>
-                <option value="Completado">Completado</option>
-              </select>
+
+              {/* Solo mostramos el selector de estado si estamos editando */}
+              {editingId && (
+                <>
+                  <label>Estado</label>
+                  <select value={form.estado || 'Pendiente'} onChange={e => setForm({ ...form, estado: e.target.value })}>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="EnProgreso">EnProgreso</option>
+                    <option value="EnEspera">EnEspera</option>
+                    <option value="Completado">Completado</option>
+                  </select>
+                </>
+              )}
+
               <label>Comentario</label>
               <textarea value={form.comentario} onChange={e => setForm({ ...form, comentario: e.target.value })} />
               <label>Sala ID (opcional)</label>
@@ -184,11 +234,12 @@ export default function Dashboard() {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button type="submit">{editingId ? 'Guardar cambios' : 'Crear tarea'}</button>
-                {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' }); }}>Cancelar</button>}
+                {editingId && <button type="button" onClick={() => {
+                  setEditingId(null);
+                  setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', comentario: '', sala_id: '' });
+                }}>Cancelar</button>}
               </div>
             </form>
-
-            
 
             {loading ? (
               <div style={{ marginTop: 12 }}>Cargando tareas...</div>
@@ -220,10 +271,11 @@ export default function Dashboard() {
               </table>
             )}
 
-            {error && <div className="error-message" style={{ marginTop: 12 }}>{error}</div>}
+            {error && <div className="error-message" style={{ marginTop: 12, color: 'crimson', whiteSpace: 'pre-wrap' }}>{error}</div>}
           </div>
         </div>
 
+        {/* --- Sección de estadísticas (sin cambios) --- */}
         <div className="dashboard-right">
           <div className="card">
             <h3>Resumen</h3>
@@ -239,15 +291,22 @@ export default function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={[{ name: 'Pendientes', value: safeStats.pendientes || 0 },{ name: 'En Progreso', value: safeStats.en_progreso || 0 },{ name: 'En Espera', value: safeStats.en_espera || 0 },{ name: 'Completadas', value: safeStats.completadas || 0 }]}
+                        data={[
+                          { name: 'Pendientes', value: safeStats.pendientes || 0 },
+                          { name: 'En Progreso', value: safeStats.en_progreso || 0 },
+                          { name: 'En Espera', value: safeStats.en_espera || 0 },
+                          { name: 'Completadas', value: safeStats.completadas || 0 }
+                        ]}
                         dataKey="value"
                         nameKey="name"
                         outerRadius={70}
                         isAnimationActive={true}
                         animationDuration={800}
                       >
-                          {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
-                        </Pie>
+                        {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
@@ -255,7 +314,11 @@ export default function Dashboard() {
 
                 <h4>Por prioridad</h4>
                 <ResponsiveContainer width="100%" height={120}>
-                  <BarChart data={[{ name: 'alta', value: porPrioridad.alta || 0 },{ name: 'media', value: porPrioridad.media || 0 },{ name: 'baja', value: porPrioridad.baja || 0 }]} isAnimationActive={true} animationDuration={700}>
+                  <BarChart data={[
+                    { name: 'alta', value: porPrioridad.alta || 0 },
+                    { name: 'media', value: porPrioridad.media || 0 },
+                    { name: 'baja', value: porPrioridad.baja || 0 }
+                  ]} isAnimationActive={true} animationDuration={700}>
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
@@ -263,7 +326,6 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* New: Stacked bar by Estado with prioridad stacks */}
                 <h4 style={{ marginTop: 12 }}>Por estado y prioridad</h4>
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={groupedData} margin={{ left: 8, right: 8 }} isAnimationActive={true} animationDuration={700}>
@@ -276,7 +338,6 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* New: Per-task colored bars (scrollable) to display many tasks with unique colors */}
                 <h4 style={{ marginTop: 12 }}>Tareas (por estado/prioridad) — colores por tarea</h4>
                 <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 8 }}>
                   <ResponsiveContainer width="100%" height={Math.min(320, taskBars.length * 28)}>
@@ -308,7 +369,7 @@ export default function Dashboard() {
                 <div className="recent-list">
                   {recientesData.map(r => (
                     <div className="recent-item" key={r.id_tarea}>
-                      <div style={{ fontWeight:700 }}>{r.titulo}</div>
+                      <div style={{ fontWeight: 700 }}>{r.titulo}</div>
                       <div className="muted">{r.estado} • {r.prioridad} • {r.fecha_vencimiento || 'sin fecha'}</div>
                     </div>
                   ))}

@@ -1,37 +1,35 @@
 import api from './api';
 import cfg from './config';
 
-// CRUD completo para tareas
-export const tareasService = {
-    // Obtener todas las tareas (con filtros opcionales)
-    getAll: (filters = {}) => {
-        const q = new URLSearchParams(filters).toString();
-        const url = cfg.paths.tareas + (q ? `?${q}` : '');
-        return api.get(url);
+export default {
+    getAll: () => {
+        return api.get(cfg.paths.tareas).then(res => {
+            console.log('Tareas recibidas:', res.data);
+            return res.data;
+        });
     },
-
-    // Crear una nueva tarea
     create: (data) => {
-        return api.post(cfg.paths.tareas, data);
+        return api.post(cfg.paths.tareas, data).then(res => {
+            console.log('Tarea creada:', res.data);
+            return res.data;
+        });
     },
-
-    // Obtener una tarea por ID
-    getById: (id) => {
-        return api.get(cfg.paths.tareaById(id));
-    },
-
-    // Actualizar una tarea
     update: (id, data) => {
-        return api.put(cfg.paths.tareaById(id), data);
+        return api.put(cfg.paths.tareaById(id), data).then(res => {
+            console.log('Tarea actualizada:', res.data);
+            return res.data;
+        });
     },
-
-    // Eliminar una tarea
     delete: (id) => {
-        return api.delete(cfg.paths.tareaById(id));
+        return api.delete(cfg.paths.tareaById(id)).then(res => {
+            console.log('Tarea eliminada:', id);
+            return res.data;
+        });
     },
-
-    // Obtener estadísticas
-    getStats: () => {
-        return api.get(cfg.paths.estadisticasTareas);
+    completar: (id) => {
+        return api.patch(cfg.paths.tareaById(id) + '/completar').then(res => {
+            console.log('Tarea completada:', res.data);
+            return res.data;
+        });
     }
 };

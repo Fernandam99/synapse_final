@@ -18,10 +18,10 @@ export default {
     searchUsuarios: '/usuarios/search',
 
     // Tareas
-    tareas: '/tarea',
-    tareaById: (id) => `/tarea/${id}`,
-    tareasPorSala: (salaId) => `/tarea/sala/${salaId}`,
-    estadisticasTareas: '/tarea/estadisticas',
+    tareas: '/tareas',
+    tareaById: (id) => `/tareas/${id}`,
+    tareasPorSala: (salaId) => `/tareas/sala/${salaId}`,
+    estadisticasTareas: '/tareas/estadisticas',
 
     // Sesiones
     sesiones: '/sesion',
