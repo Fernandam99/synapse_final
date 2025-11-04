@@ -321,6 +321,18 @@ aside.sidebar.expanded ~ .main-with-sidebar {
     width: 100%;
 }
 
+/* Title used in auth modals (Login/Register) - default follows design tokens */
+.auth-title {
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Force white title for dark / midnight themes where var(--text-primary) might be dark */
+[data-theme="dark"] .auth-title,
+[data-theme="midnight"] .auth-title {
+    color: #ffffff !important;
+}
+
 .close-btn {
     position: absolute;
     right: 10px;
@@ -2697,6 +2709,29 @@ body:has(.sidebar.expanded) .site-footer .footer-inner {
     background: color-mix(in srgb, var(--bg-primary) 95%, transparent);
     box-shadow: var(--shadow-medium);
     backdrop-filter: blur(10px);
+}
+
+/* Force navbar auth buttons to be readable in dark / midnight themes */
+[data-theme="dark"] .nav-actions .btn,
+[data-theme="dark"] .nav-actions button,
+[data-theme="dark"] .nav-right .btn {
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+[data-theme="dark"] .nav-actions .btn.ghost,
+[data-theme="dark"] .nav-actions button.btn.ghost {
+    background: rgba(255,255,255,0.04) !important;
+}
+
+[data-theme="midnight"] .nav-actions .btn,
+[data-theme="midnight"] .nav-actions button,
+[data-theme="midnight"] .nav-right .btn {
+    color: #ffffff !important;
+    border-color: rgba(255,255,255,0.12) !important;
+}
+[data-theme="midnight"] .nav-actions .btn.ghost,
+[data-theme="midnight"] .nav-actions button.btn.ghost {
+    background: rgba(255,255,255,0.04) !important;
 }
 
 .app-navbar.scrolled .nav-brand a {

@@ -98,6 +98,12 @@ def create_tarea():
         db.session.add(nueva_tarea)
         db.session.commit()
 
+        # Debug log: confirmar creación en servidor
+        try:
+            print(f"[CREATE TAREA] usuario={usuario_id} id={nueva_tarea.id_tarea} estado={nueva_tarea.estado} fecha_vencimiento={nueva_tarea.fecha_vencimiento}")
+        except Exception:
+            pass
+
         return jsonify(nueva_tarea.to_dict()), 201
 
     except Exception as e:
@@ -187,6 +193,7 @@ def delete_tarea(id_tarea):
 def get_estadisticas_tareas():
     try:
         usuario_id = get_jwt_identity()
+<<<<<<< Updated upstream
         
         # Contar tareas por estado
         stats = {
@@ -199,6 +206,25 @@ def get_estadisticas_tareas():
         
         # Tareas por prioridad
         stats['por_prioridad'] = {
+=======
+        print(f"[GET ESTAD TAREAS] llamada para usuario={usuario_id}")
+        hoy = date.today()
+        primer_dia_mes = hoy.replace(day=1)
+        if hoy.month == 12:
+            ultimo_dia_mes = hoy.replace(year=hoy.year + 1, month=1, day=1) - timedelta(days=1)
+        else:
+            ultimo_dia_mes = hoy.replace(month=hoy.month + 1, day=1) - timedelta(days=1)
+
+        # Conteo básico por estado
+        total = Tarea.query.filter_by(usuario_id=usuario_id).count()
+        pendientes = Tarea.query.filter_by(usuario_id=usuario_id, estado='Pendiente').count()
+        en_progreso = Tarea.query.filter_by(usuario_id=usuario_id, estado='EnProgreso').count()
+        en_espera = Tarea.query.filter_by(usuario_id=usuario_id, estado='EnEspera').count()
+        completadas = Tarea.query.filter_by(usuario_id=usuario_id, estado='Completado').count()
+
+        # Por prioridad
+        por_prioridad = {
+>>>>>>> Stashed changes
             'alta': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='alta').count(),
             'media': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='media').count(),
             'baja': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='baja').count()
@@ -217,9 +243,82 @@ def get_estadisticas_tareas():
             Tarea.usuario_id == usuario_id,
             Tarea.fecha_vencimiento == hoy
         ).count()
+<<<<<<< Updated upstream
         
         return jsonify(stats), 200
         
+=======
+
+        # Tareas recientes (últimos 5 días, ordenadas por fecha_creacion DESC)
+        hace_5_dias = hoy - timedelta(days=5)
+        recientes = Tarea.query.filter(
+            Tarea.usuario_id == usuario_id,
+            Tarea.fecha_creacion >= datetime.combine(hace_5_dias, datetime.min.time())
+        ).order_by(Tarea.fecha_creacion.desc()).limit(5).all()
+
+        # Actividad mensual (últimos 3 meses)
+        monthly = []
+        for i in range(3):
+            # Mes a analizar
+            if hoy.month - i <= 0:
+                mes = 12 + (hoy.month - i)
+                año = hoy.year - 1
+            else:
+                mes = hoy.month - i
+                año = hoy.year
+
+            # Primer y último día del mes
+            primer_dia = date(año, mes, 1)
+            if mes == 12:
+                ultimo_dia = date(año + 1, 1, 1) - timedelta(days=1)
+            else:
+                ultimo_dia = date(año, mes + 1, 1) - timedelta(days=1)
+
+            # Contar tareas creadas en ese mes
+            creadas = Tarea.query.filter(
+                Tarea.usuario_id == usuario_id,
+                Tarea.fecha_creacion >= datetime.combine(primer_dia, datetime.min.time()),
+                Tarea.fecha_creacion <= datetime.combine(ultimo_dia, datetime.max.time())
+            ).count()
+
+            # Contar tareas completadas en ese mes
+            completadas_mes = Tarea.query.filter(
+                Tarea.usuario_id == usuario_id,
+                Tarea.estado == 'Completado',
+                Tarea.fecha_creacion >= datetime.combine(primer_dia, datetime.min.time()),
+                Tarea.fecha_creacion <= datetime.combine(ultimo_dia, datetime.max.time())
+            ).count()
+
+            monthly.append({
+                'year': año,
+                'month': mes,
+                'creadas': creadas,
+                'completadas': completadas_mes
+            })
+
+        # Serializar recientes
+        recientes_data = [t.to_dict() for t in recientes]
+
+        # Debug log: mostrar conteos
+        try:
+            print(f"[ESTADISTICAS VALORES] total={total} pendientes={pendientes} en_progreso={en_progreso} en_espera={en_espera} completadas={completadas}")
+        except Exception:
+            pass
+
+        return jsonify({
+            'total': total,
+            'pendientes': pendientes,
+            'en_progreso': en_progreso,
+            'en_espera': en_espera,
+            'completadas': completadas,
+            'por_prioridad': por_prioridad,
+            'vencidas': vencidas,
+            'hoy': hoy_count,
+            'recientes': recientes_data,
+            'monthly': monthly
+        }), 200
+
+>>>>>>> Stashed changes
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 @tarea_bp.route('/sala/<string:sala_id>', methods=['GET'])
@@ -256,4 +355,47 @@ def get_tareas_sala(sala_id):
         return jsonify(tareas_con_usuario), 200
 
     except Exception as e:
+        print(f"[ERROR TAREAS SALA] {str(e)}")
+        return jsonify({'error': 'Error interno al obtener tareas de la sala'}), 500
+
+
+# Endpoint temporal de depuración: devuelve últimas tareas y estadísticas calculadas
+# Útil para verificar en una sola petición si la creación persiste y cómo se computan las stats
+@tarea_bp.route('/debug', methods=['GET'])
+@jwt_required()
+def debug_tareas():
+    try:
+        usuario_id = get_jwt_identity()
+
+        # Últimas 10 tareas del usuario
+        ultimas = Tarea.query.filter_by(usuario_id=usuario_id).order_by(Tarea.fecha_creacion.desc()).limit(10).all()
+        ultimas_data = [t.to_dict() for t in ultimas]
+
+        # Reusar la lógica de estadísticas existente (llamando internamente)
+        # Conteo básico por estado
+        total = Tarea.query.filter_by(usuario_id=usuario_id).count()
+        pendientes = Tarea.query.filter_by(usuario_id=usuario_id, estado='Pendiente').count()
+        en_progreso = Tarea.query.filter_by(usuario_id=usuario_id, estado='EnProgreso').count()
+        en_espera = Tarea.query.filter_by(usuario_id=usuario_id, estado='EnEspera').count()
+        completadas = Tarea.query.filter_by(usuario_id=usuario_id, estado='Completado').count()
+
+        por_prioridad = {
+            'alta': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='alta').count(),
+            'media': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='media').count(),
+            'baja': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='baja').count()
+        }
+
+        return jsonify({
+            'ultimas': ultimas_data,
+            'estadisticas': {
+                'total': total,
+                'pendientes': pendientes,
+                'en_progreso': en_progreso,
+                'en_espera': en_espera,
+                'completadas': completadas,
+                'por_prioridad': por_prioridad
+            }
+        }), 200
+    except Exception as e:
+        print(f"[DEBUG TAREAS ERROR] {str(e)}")
         return jsonify({'error': str(e)}), 500

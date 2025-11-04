@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sun, Moon, Droplets } from 'lucide-react';
+import { Sun, Moon, Check } from 'lucide-react';
 
 export default function ThemeSelector({ theme, setTheme, compact = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,9 +40,17 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
               onClick={() => { setTheme(t.name); setIsOpen(false); }}
               className={`theme-menu-item ${theme === t.name ? 'active' : ''}`}
               role="menuitem"
+              aria-current={theme === t.name ? 'true' : undefined}
             >
-              {t.icon}
-              <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                    {t.icon}
+                    <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
+                  </div>
+                  {theme === t.name && (
+                    <span className="theme-active-indicator" aria-hidden>
+                      <Check size={14} />
+                    </span>
+                  )}
             </button>
           ))}
         </div>
@@ -92,10 +100,44 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
           font-size: 14px;
           font-weight: 500;
           border-radius: 8px;
-          transition: background-color 0.12s ease;
+          transition: background-color 0.12s ease, color 0.12s ease;
         }
         .theme-menu-item:hover { background: var(--bg-tertiary); }
         .theme-menu-item.active { background: var(--accent); color: var(--text-on-primary); }
+
+        /* When app is in light theme: make the active item visually obvious (subtle background/border) */
+        [data-theme="light"] .theme-menu-item.active {
+          background: rgba(2,6,23,0.06);
+          color: var(--text-primary);
+          box-shadow: inset 0 0 0 1px rgba(2,6,23,0.04);
+        }
+
+        /* When app is in dark or midnight theme: force menu labels to white for readability */
+        [data-theme="dark"] .theme-menu-item,
+        [data-theme="midnight"] .theme-menu-item {
+          color: #ffffff;
+        }
+
+        /* Ensure active styling in dark/midnight remains legible (accent keeps previous behavior) */
+        [data-theme="dark"] .theme-menu-item.active,
+        [data-theme="midnight"] .theme-menu-item.active {
+          /* make the active item stand out in dark/midnight: subtle light background and stronger contrast */
+          background: rgba(255,255,255,0.06);
+          color: #ffffff;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
+        }
+
+        /* Active check indicator (right side) */
+        .theme-active-indicator { margin-left: auto; display: inline-flex; align-items: center; color: var(--text-on-primary, #fff); }
+
+        /* Make the check indicator dark-friendly in light theme */
+        [data-theme="light"] .theme-active-indicator { color: var(--text-primary); }
+
+        /* Slightly dim non-active labels in dark/midnight so the active one pops */
+        [data-theme="dark"] .theme-menu-item,
+        [data-theme="midnight"] .theme-menu-item {
+          color: rgba(255,255,255,0.9);
+        }
       `}</style>
     </div>
   );

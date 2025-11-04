@@ -52,7 +52,7 @@ export default function Register({ onSuccess, onSwitchMode }) {
   return (
     <div>
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>{t('register')}</h2>
+        <h2 className="auth-title" style={{ margin: 0 }}>{t('register')}</h2>
       </div>
 
       <button className="google-btn" type="button" style={{ marginBottom: 12 }}>

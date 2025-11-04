@@ -46,9 +46,9 @@ export default function Login({ onSuccess, onSwitchMode }) {
   return (
    <div style={{ fontFamily: 'Inter, system-ui, Arial' }}> 
 
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>{t('login')}</h2>
-      </div>
+  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+    <h2 className="auth-title" style={{ margin: 0 }}>{t('login')}</h2>
+  </div>
 
       <button className="google-btn" type="button">
         <span className="google-icon"><img src="/static/IMG/google.svg" alt={t('google_alt', 'Google')} /></span>

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+import { Home, Target, CheckCircle, Star, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
@@ -48,10 +48,10 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   const navItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
-    { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
     { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+    { path: '/recompensas', label: t('rewards', 'Recompensas'), icon: <Star size={18} /> },
+    { path: '/tareas', label: t('tasks', 'Tareas'), icon: <CheckCircle size={18} /> },
+    // Se removieron los enlaces a 'sesion-grupal' y 'perfil' del navbar según solicitud
   ];
 
   const handleProfileMenuMouseLeave = () => {
@@ -184,7 +184,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                       onMouseLeave={handleProfileMenuMouseLeave}
                   >
                     {/* Secciones de Perfil y Configuración */}
-                    <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('profile')}</Link>
+                    {/* Enlace a perfil eliminado; dejamos configuración y cerrar sesión */}
                     <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
                     <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
                   </div>
@@ -247,10 +247,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               </>
             ) : (
               <>
-                <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
-                  <User size={16} />
-                  <span>{t('my_account')}</span>
-                </Link>
+                {/* Enlace a perfil eliminado del menú móvil */}
                 <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
                   <User size={16} />
                   <span>{t('logout')}</span>

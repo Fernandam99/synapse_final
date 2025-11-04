@@ -44,13 +44,14 @@ export default function HomePage({ user, onAuthClick }) {
   }, []);
 
   // Lista de técnicas disponibles
+  // He eliminado las tarjetas "Sesiones Grupales" y "Perfil" según petición
+  // Además la tarjeta de tareas la colocamos más abajo (se aplica un marginTop en el render)
+  // Técnicas disponibles (incluye Recompensas y Tareas además de Pomodoro y Meditación)
   const tecnicas = [
     { id: 1, key: 'tech_pomodoro', ruta: '/pomodoro', Icon: Clock, color: '#667eea' },
     { id: 2, key: 'tech_meditation', ruta: '/meditacion', Icon: Leaf, color: '#764ba2' },
-    { id: 3, key: 'tech_tasks', ruta: '/tareas', Icon: CheckCircle, color: '#22c55e' },
-    { id: 4, key: 'tech_rewards', ruta: '/recompensas', Icon: Star, color: '#eab308' },
-    { id: 5, key: 'tech_group', ruta: '/sesion-grupal', Icon: Users, color: '#3b82f6' },
-    { id: 6, key: 'tech_profile', ruta: '/perfil', Icon: User, color: '#8b5cf6' }
+    { id: 3, key: 'tech_rewards', ruta: '/recompensas', Icon: Star, color: '#eab308' },
+    { id: 4, key: 'tech_tasks', ruta: '/tareas', Icon: CheckCircle, color: '#22c55e' }
   ];
 
   // Manejo de autenticación
@@ -164,14 +165,26 @@ export default function HomePage({ user, onAuthClick }) {
           --text-secondary: #6b7280;
         }
         .status-badge { display:inline-block; padding:6px 10px; border-radius:9999px; font-weight:600; font-size:0.85rem; }
-        /* Center hero layout as requested */
+        /* Layout tuned to match the provided design: text left, floating card close to text */
         .homepage-root .hero-inner { justify-content: center !important; }
-        .hero-grid { justify-content: center !important; gap: 2rem !important; }
-        .hero-text { text-align: center !important; margin: 0 auto; }
-        /* Ensure visual keeps a pleasant offset on very wide screens */
+        .hero-grid { justify-content: center !important; gap: 2.5rem !important; align-items: center; width: 100%; }
+        /* Text block stays left-aligned and has a controlled max-width so the heading
+           wraps similarly to the design and the floating card sits close to it. */
+        .hero-text { text-align: left !important; margin: 0; max-width: 640px; }
+        /* Make the visual (floating card) sit nearer to the text on wide screens */
+        .hero-visual { margin-left: 1rem; }
+        /* Ensure visual offset is pleasant on very wide screens (desktop) */
         @media (min-width: 1600px) {
           .hero-grid { justify-content: center; }
           .hero-visual { margin-left: 2rem; }
+        }
+      `}</style>
+
+      <style>{`
+        /* Fuerza cuadrícula 2x2 para técnicas y cae a 1 columna en pantallas pequeñas */
+        .section-techniques .tech-grid { display: grid; grid-template-columns: repeat(2, minmax(280px, 1fr)); gap: 2rem; }
+        @media (max-width: 700px) {
+          .section-techniques .tech-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -268,12 +281,12 @@ export default function HomePage({ user, onAuthClick }) {
         >
           <Target size={32} color="white" />
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-          {t('Pomodoro', 'Pomodoro')}
-        </h3>
-        <p style={{ lineHeight: '1.6' }}>
-          {t('tech_pomodoro.desc', 'Ejercicios personalizados para mejorar tu enfoque mental.')}
-        </p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              {t('Pomodoro', 'Pomodoro')}
+            </h3>
+            <p style={{ lineHeight: '1.6' }}>
+              Mejora tu productividad trabajando en bloques de tiempo con pausas estratégicas.
+            </p>
       </div>
 
       <div
@@ -295,12 +308,12 @@ export default function HomePage({ user, onAuthClick }) {
         >
           <Leaf size={32} color="white" />
         </div>
-        <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-          {t('tech_meditation.name', 'Meditación')}
-        </h3>
-        <p style={{ lineHeight: '1.6' }}>
-          {t('tech_meditation.desc', 'Sesiones guiadas con biofeedback y adaptación en tiempo real.')}
-        </p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              {t('tech_meditation.name', 'Meditación')}
+            </h3>
+            <p style={{ lineHeight: '1.6' }}>
+              Reduce el estrés y aumenta la claridad mental con prácticas guiadas
+            </p>
       </div>
 
       <div
@@ -338,15 +351,25 @@ export default function HomePage({ user, onAuthClick }) {
         <div className="content-inner">
           <h2 style={{ fontSize: 'clamp(1.875rem, 4vw, 2.25rem)', fontWeight: '700', marginBottom: '3rem', color: 'white', textAlign: 'center' }}>{t('techniques_available', 'Techniques Available')}</h2>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+          <div className="tech-grid">
             {tecnicas.map((tecnica) => {
               const { Icon } = tecnica;
               return (
                 <div key={tecnica.id} className="tech-card">
                   <div className="tech-icon" style={{ marginBottom: '1rem' }}><Icon size={40} color={tecnica.color} /></div>
-              <h3 className="tech-title">{t(`${tecnica.key}.name`)}</h3>
-              <p className="tech-desc">{t(`${tecnica.key}.desc`)}</p>
-              <button className="tech-cta" onClick={() => handleTecnicaClick(tecnica.ruta)}>{t('go_to', 'Go to')} {t(`${tecnica.key}.name`)}</button>
+                  <h3 className="tech-title">
+                    {tecnica.key === 'tech_pomodoro' ? 'Pomodoro' : tecnica.key === 'tech_meditation' ? 'Meditación' : tecnica.key === 'tech_rewards' ? 'Recompensas' : 'Tareas'}
+                  </h3>
+                  <p className="tech-desc">
+                    {tecnica.key === 'tech_pomodoro' ?
+                      'Mejora tu productividad trabajando en bloques de tiempo con pausas estratégicas.' : tecnica.key === 'tech_meditation' ?
+                      'Reduce el estrés y aumenta la claridad mental con prácticas guiadas' : tecnica.key === 'tech_rewards' ?
+                      'Gana logros y puntos por tus hábitos.' :
+                      'Organiza y gestiona tus pendientes fácilmente.'}
+                  </p>
+                  <button className="tech-cta" onClick={() => handleTecnicaClick(tecnica.ruta)}>
+                    {tecnica.key === 'tech_pomodoro' ? 'Ir a Pomodoro' : tecnica.key === 'tech_meditation' ? 'Ir a Meditación' : tecnica.key === 'tech_rewards' ? 'Ir a Recompensas' : 'Ir a Tareas'}
+                  </button>
                 </div>
               );
             })}

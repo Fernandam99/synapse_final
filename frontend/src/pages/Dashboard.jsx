@@ -7,9 +7,8 @@ import {
   BarChart, Bar, XAxis, YAxis, LineChart, Line
 } from 'recharts';
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']; 
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
-// deterministic color per task id (HSL based on id hash) to give each task a unique color
 function colorForId(id) {
   const s = id?.toString() || '';
   let hash = 0;
@@ -19,110 +18,106 @@ function colorForId(id) {
 }
 
 export default function Dashboard() {
-  const usuario = getUsuario(); 
-  const [tareas, setTareas] = useState([]); 
-  const [loading, setLoading] = useState(false); 
-  const [error, setError] = useState(''); 
-  const [form, setForm] = useState({ 
-    titulo: '', descripcion: '', fecha_vencimiento: '', 
-    prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' 
-  }); 
-  const [editingId, setEditingId] = useState(null); 
-  const [stats, setStats] = useState(null); 
+  const usuario = getUsuario();
+  const [tareas, setTareas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [form, setForm] = useState({
+    titulo: '', descripcion: '', fecha_vencimiento: '',
+    prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: ''
+  });
+  const [editingId, setEditingId] = useState(null);
+  const [stats, setStats] = useState(null);
   const [filters, setFilters] = useState({ estado: '', prioridad: '' });
 
   useEffect(() => {
-    fetchAll(); 
-    if (getToken()) fetchStats(); 
-  }, []); 
+    fetchAll();
+    if (getToken()) fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleLogout() {
-    logout(); // Elimina el token y los datos del usuario
-    // Redirigir usando location para evitar dependencia de navigate
-    window.location.href = '/login'; // Redirige a la página de login
+    logout();
+    window.location.href = '/login';
   }
 
   async function fetchAll() {
-    setLoading(true); 
+    setLoading(true);
     setError('');
     try {
-      const q = new URLSearchParams(filters).toString(); 
-      const path = cfg.paths.tareas + (q ? ('?' + q) : ''); 
-      const res = await api.get(path); 
+      const q = new URLSearchParams(filters).toString();
+      const path = cfg.paths.tareas + (q ? ('?' + q) : '');
+      const res = await api.get(path);
       setTareas(Array.isArray(res.data) ? res.data : res.data.results || []);
     } catch (e) {
-      console.error(e); 
+      console.error(e);
       setError('Error cargando tareas: ' + (e.response?.data || e.message));
-    } 
-    setLoading(false); 
-  } 
+    }
+    setLoading(false);
+  }
 
   async function fetchStats() {
     try {
-      const res = await api.get(cfg.paths.estadisticas); 
-      setStats(res.data); 
+      const res = await api.get(cfg.paths.estadisticas);
+      setStats(res.data);
     } catch (e) {
-      if (e?.response?.status === 401) return; // ignore unauthorized
+      if (e?.response?.status === 401) return;
       console.error(e);
     }
   }
 
   async function handleCreateOrUpdate(e) {
-    e.preventDefault(); 
-    setError(''); 
+    e.preventDefault();
+    setError('');
     try {
-      const payload = { ...form }; 
-      if (editingId) { 
-        await api.put(`${cfg.paths.tareas}/${editingId}`, payload); 
-      } else { 
-        await api.post(cfg.paths.tareas, payload); 
+      const payload = { ...form };
+      if (editingId) {
+        await api.put(`${cfg.paths.tareas}/${editingId}`, payload);
+      } else {
+        await api.post(cfg.paths.tareas, payload);
       }
-      setForm({ 
-        titulo: '', descripcion: '', fecha_vencimiento: '', 
-        prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' 
-      }); 
-      setEditingId(null); 
-      await fetchAll(); 
-      await fetchStats(); 
+      setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' });
+      setEditingId(null);
+      await fetchAll();
+      await fetchStats();
     } catch (e) {
-      console.error(e); 
+      console.error(e);
       setError('Error guardando tarea: ' + (e.response?.data || e.message));
-    } 
+    }
   }
 
   function startEdit(t) {
-    setEditingId(t.id_tarea); 
-    setForm({ 
-      titulo: t.titulo || '', descripcion: t.descripcion || '', 
-      fecha_vencimiento: t.fecha_vencimiento || '', 
-      prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente', 
-      comentario: t.comentario || '', sala_id: t.sala_id || '' 
-    }); 
+    setEditingId(t.id_tarea);
+    setForm({
+      titulo: t.titulo || '', descripcion: t.descripcion || '',
+      fecha_vencimiento: t.fecha_vencimiento || '',
+      prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente',
+      comentario: t.comentario || '', sala_id: t.sala_id || ''
+    });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async function handleDelete(id) {
-    if (!window.confirm('¿Eliminar tarea?')) return; 
+    if (!window.confirm('¿Eliminar tarea?')) return;
     try {
-      await api.delete(`${cfg.paths.tareas}/${id}`); 
-      await fetchAll(); 
-      await fetchStats(); 
+      await api.delete(`${cfg.paths.tareas}/${id}`);
+      await fetchAll();
+      await fetchStats();
     } catch (e) {
-      console.error(e); 
+      console.error(e);
       setError('Error eliminando: ' + (e.response?.data || e.message));
-    } 
+    }
   }
-  // Valores defensivos para evitar errores si stats o tareas son undefined
+
   const safeStats = stats || {};
   const monthlyData = Array.isArray(safeStats.monthly) ? safeStats.monthly : [];
   const recientesData = Array.isArray(safeStats.recientes) ? safeStats.recientes : [];
   const porPrioridad = safeStats.por_prioridad || { alta: 0, media: 0, baja: 0 };
   const safeTareas = Array.isArray(tareas) ? tareas : [];
 
-  // Build a color map for tasks
   const taskColors = {};
   safeTareas.forEach(t => { taskColors[t.id_tarea] = colorForId(t.id_tarea); });
 
-  // Group tasks by estado and count priorities for stacked bar
   const estadoOrder = ['Pendiente', 'EnProgreso', 'EnEspera', 'Completado'];
   const prioridadKeys = ['alta', 'media', 'baja'];
   const grouped = {};
@@ -135,8 +130,6 @@ export default function Dashboard() {
   });
   const groupedData = Object.values(grouped);
 
-  // Data for per-task bars (each task gets a bar of value 1, colored uniquely)
-  // Sort tasks by estado then prioridad to 'reorganize' them visually
   const priorityRank = { alta: 0, media: 1, baja: 2 };
   const estadoRank = { Pendiente: 0, EnProgreso: 1, EnEspera: 2, Completado: 3 };
   const taskBars = safeTareas.slice().sort((a,b) => {
@@ -152,7 +145,6 @@ export default function Dashboard() {
       <div className="dashboard-grid">
         <div className="dashboard-left">
           <div className="left-form card">
-            {/* Header */}
             <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-gradient)', padding: '10px 14px', borderRadius: 8, color: '#ffffff' }}>
               <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {usuario?.nombre_completo || usuario?.Username || usuario?.name || 'Usuario'}</h2>
             </div>
@@ -187,8 +179,6 @@ export default function Dashboard() {
                 {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' }); }}>Cancelar</button>}
               </div>
             </form>
-
-            
 
             {loading ? (
               <div style={{ marginTop: 12 }}>Cargando tareas...</div>
@@ -263,7 +253,6 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* New: Stacked bar by Estado with prioridad stacks */}
                 <h4 style={{ marginTop: 12 }}>Por estado y prioridad</h4>
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={groupedData} margin={{ left: 8, right: 8 }} isAnimationActive={true} animationDuration={700}>
@@ -276,7 +265,6 @@ export default function Dashboard() {
                   </BarChart>
                 </ResponsiveContainer>
 
-                {/* New: Per-task colored bars (scrollable) to display many tasks with unique colors */}
                 <h4 style={{ marginTop: 12 }}>Tareas (por estado/prioridad) — colores por tarea</h4>
                 <div style={{ maxHeight: 220, overflowY: 'auto', paddingRight: 8 }}>
                   <ResponsiveContainer width="100%" height={Math.min(320, taskBars.length * 28)}>

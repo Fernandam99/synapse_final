@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Globe } from 'lucide-react';
+import { Globe, Check } from 'lucide-react';
 import i18n from '../i18n';
 
 export default function LanguageSelector({ currentLng, compact = false }) {
@@ -42,8 +42,19 @@ export default function LanguageSelector({ currentLng, compact = false }) {
       {isOpen && (
         <div className="theme-menu" role="menu" style={compact ? { left: '100%', bottom: '0', transform: 'translateX(8px) translateY(-8px)' } : undefined}>
           {languages.map(l => (
-            <button key={l.code} onClick={() => changeLanguage(l.code)} className={`theme-menu-item ${i18n.language === l.code ? 'active' : ''}`} role="menuitem">
-              <span>{l.label}</span>
+            <button
+              key={l.code}
+              onClick={() => changeLanguage(l.code)}
+              className={`theme-menu-item ${i18n.language === l.code ? 'active' : ''}`}
+              role="menuitem"
+              aria-current={i18n.language === l.code ? 'true' : undefined}
+            >
+              <span style={{ marginRight: 8 }}>{l.label}</span>
+              {i18n.language === l.code && (
+                <span className="theme-active-indicator" aria-hidden>
+                  <Check size={14} />
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -53,9 +64,20 @@ export default function LanguageSelector({ currentLng, compact = false }) {
         .theme-toggle-btn.compact { padding: 8px; border-radius: 50%; }
         .theme-toggle-btn.compact span { display: none; }
         .theme-menu { position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: 140px; background: var(--bg-primary); border-radius: 12px; box-shadow: 0 8px 30px rgba(2,6,23,0.06); overflow: hidden; border: 1px solid var(--border-default); z-index: 60; padding:6px; }
-        .theme-menu-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding: 8px 10px; border:none; background:transparent; cursor:pointer; color:var(--text-primary); font-weight:600; border-radius:6px; }
-        .theme-menu-item:hover { background: var(--bg-tertiary); }
-        .theme-menu-item.active { background: var(--accent); color: var(--text-on-primary); }
+  .theme-menu-item { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding: 8px 10px; border:none; background:transparent; cursor:pointer; color:var(--text-primary); font-weight:600; border-radius:6px; }
+  .theme-menu-item:hover { background: var(--bg-tertiary); }
+  .theme-menu-item.active { background: var(--accent); color: var(--text-on-primary); }
+
+  /* When app is in light theme: accent the active language item */
+  [data-theme="light"] .theme-menu-item.active { background: rgba(2,6,23,0.06); color: var(--text-primary); box-shadow: inset 0 0 0 1px rgba(2,6,23,0.04); }
+
+  /* Dark/midnight: force labels white and dim non-active slightly */
+  [data-theme="dark"] .theme-menu-item,
+  [data-theme="midnight"] .theme-menu-item { color: #ffffff; }
+  [data-theme="dark"] .theme-menu-item { color: rgba(255,255,255,0.9); }
+
+  .theme-active-indicator { margin-left: auto; display: inline-flex; align-items: center; color: var(--text-on-primary, #fff); }
+  [data-theme="light"] .theme-active-indicator { color: var(--text-primary); }
       `}</style>
     </div>
   );
