@@ -52,7 +52,18 @@ export default {
     progresoSemana: '/progreso/semana',
     progresoMes: '/progreso/mes',
     progresoUsuario: '/progreso/usuario',
-    estadisticasGenerales: '/progreso/estadisticas'
+    estadisticasGenerales: '/progreso/estadisticas',
+
+    // Pomodoro (productividad)
+    pomodoroIniciar: '/productividad/pomodoro/iniciar',
+    pomodoroFinalizar: (sesionId) => `/productividad/pomodoro/finalizar/${sesionId}`,
+    pomodoroEstado: '/productividad/pomodoro/estado',
+
+    // Meditación (bienestar)
+    meditacionIniciar: '/bienestar/meditacion/iniciar',
+    meditacionFinalizar: (sesionId) => `/bienestar/meditacion/finalizar/${sesionId}`,
+    meditacionEstado: '/bienestar/meditacion/estado',
+    meditacionHistorial: '/bienestar/meditacion/historial'
   },
 
   // Nombres de campos en la respuesta de autenticación

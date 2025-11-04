@@ -7,7 +7,8 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Concentracion = React.lazy(() => import('./pages/Concentracion'));
-import PrivateRoute from './components/PrivateRoute'; 
+const Meditacion = React.lazy(() => import('./pages/Meditacion'));
+import PrivateRoute from './components/PrivateRoute';
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
 import Loader from './components/loader';
@@ -23,7 +24,7 @@ import { logout as doLogout, getUsuario } from './services/auth';
 import AdminPanel from './pages/AdminPanel';
 
 
-export default function App(){
+export default function App() {
   const [loadingApp, setLoadingApp] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
@@ -110,30 +111,39 @@ export default function App(){
 
   return (
     <>
-  <div className="app-debug-banner">APP RENDER OK</div>
-  {/* Fullscreen startup loader */}
-  {loadingApp && (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
-      <Loader size={260} />
-    </div>
-  )}
+      <div className="app-debug-banner">APP RENDER OK</div>
+      {/* Fullscreen startup loader */}
+      {loadingApp && (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
+          <Loader size={260} />
+        </div>
+      )}
 
-  <Suspense fallback={null}>
-    <Navbar user={usuario} onAuthClick={openAuth} onLogout={handleLogout} theme={theme} setTheme={setTheme} />
-  </Suspense>
-  <AuthModal open={authOpen} mode={authMode} onClose={closeAuth} onAuthSuccess={onAuthSuccess} openAuth={openAuth} />
+      <Suspense fallback={null}>
+        <Navbar user={usuario} onAuthClick={openAuth} onLogout={handleLogout} theme={theme} setTheme={setTheme} />
+      </Suspense>
+      <AuthModal open={authOpen} mode={authMode} onClose={closeAuth} onAuthSuccess={onAuthSuccess} openAuth={openAuth} />
 
-  <Suspense fallback={<div style={{padding:20}}>Cargando...</div>}>
-  <Routes>
-        <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-        <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-  <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
-  <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
-  <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
-  <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
-  <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
-  <Route path="/admin" element={<AdminPanel />} />
-      </Routes>
+      <Suspense fallback={<div style={{ padding: 20 }}>Cargando...</div>}>
+        <Routes>
+          {/* Páginas públicas */}
+          <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
+          <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
+
+          {/* Páginas privadas */}
+          <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard /></PrivateRoute></div>} />
+          <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile /></PrivateRoute></div>} />
+          <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion /></PrivateRoute></div>} />
+          <Route path="/meditacion" element={<div className="container"><PrivateRoute><Meditacion /></PrivateRoute></div>} /> {/* ← NUEVA RUTA */}
+          <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings" /></PrivateRoute></div>} />
+          <Route path="/pomodoro" element={<div className="container"><PrivateRoute><Pomodoro /></PrivateRoute></div>} /> {/* ← NUEVA RUTA */}
+          
+          {/* Página principal */}
+          <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
+
+          {/* Panel de administrador (sin PrivateRoute, asume que solo admins acceden o lo manejas en backend) */}
+          <Route path="/admin" element={<AdminPanel />} />
+        </Routes>
       </Suspense>
       <Footer />
     </>
