@@ -1,16 +1,20 @@
 import api from './api';
 
-export default {
-    iniciarMeditacion: (data) => {
-        return api.post('/bienestar/meditacion/iniciar', data).then(res => {
-            console.log('Meditación iniciada:', res.data);
-            return res.data;
-        });
+const meditacionService = {
+    // POST /api/bienestar/meditacion/iniciar
+    iniciar: (data) => {
+        return api.post('/bienestar/meditacion/iniciar', data);
     },
 
-    // Si en el futuro tienes GET /bienestar/sesiones, añádelo aquí
-    getSesiones: () => {
-        // Por ahora, no existe en tu backend, así que devuelve vacío
-        return Promise.resolve([]);
+    // POST /api/bienestar/meditacion/finalizar
+    finalizar: (data) => {
+        return api.post('/bienestar/meditacion/finalizar', data);
+    },
+
+    // GET /api/bienestar/meditacion/sesion-actual
+    getSesionActual: () => {
+        return api.get('/bienestar/meditacion/sesion-actual');
     }
 };
+
+export default meditacionService;

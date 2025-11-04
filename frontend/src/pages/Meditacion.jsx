@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Droplet, Star, Play, RotateCcw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import meditacionService from '../services/meditacionService'; // ← IMPORTADO
 
 export default function Meditacion() {
     const { t } = useTranslation();
@@ -10,6 +11,7 @@ export default function Meditacion() {
     const [isRunning, setIsRunning] = useState(false);
     const [duracion, setDuracion] = useState(10);
     const [tipo, setTipo] = useState('mindfulness');
+    const [sessionId, setSessionId] = useState(null); // ← NUEVO
 
     const stats = {
         weekMinutes: 45,
@@ -28,14 +30,13 @@ export default function Meditacion() {
         { day: 'Dom', minutes: 0 }
     ];
 
-    // Temporizador
+    // Temporizador + finalización automática
     useEffect(() => {
         let interval = null;
         if (isRunning && timer > 0) {
             interval = setInterval(() => setTimer(t => t - 1), 1000);
-        } else if (timer === 0) {
-            setIsRunning(false);
-            // Aquí llamarías a tu servicio para registrar la sesión
+        } else if (timer === 0 && isRunning) {
+            finalizarSesion(true);
         }
         return () => clearInterval(interval);
     }, [isRunning, timer]);
@@ -46,13 +47,43 @@ export default function Meditacion() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const startMeditacion = () => {
-        setTimer(duracion * 60);
-        setIsRunning(true);
+    // ✅ INICIAR con backend
+    const startMeditacion = async () => {
+        try {
+            const payload = {
+                duracion: duracion,
+                tipo_meditacion: tipo
+            };
+            const res = await meditacionService.iniciar(payload);
+            setSessionId(res.data.meditacion.sesion_id); // ← Guardamos ID de sesión
+            setTimer(duracion * 60);
+            setIsRunning(true);
+        } catch (err) {
+            console.error('Error al iniciar meditación:', err);
+            alert(err.response?.data?.error || 'No se pudo iniciar la sesión');
+        }
+    };
+
+    // ✅ FINALIZAR con backend
+    const finalizarSesion = async (completada = false) => {
+        if (!sessionId) return;
+        try {
+            await meditacionService.finalizar({
+                completado_totalmente: completada,
+                calificacion: completada ? 5 : 3 // ← Ejemplo: calificación automática (puedes pedirla al usuario)
+            });
+        } catch (err) {
+            console.error('Error al finalizar meditación:', err);
+        } finally {
+            setIsRunning(false);
+            setSessionId(null);
+        }
     };
 
     const resetTimer = () => {
-        setIsRunning(false);
+        if (isRunning && sessionId) {
+            finalizarSesion(false); // Finaliza si estaba activa
+        }
         setTimer(duracion * 60);
     };
 
@@ -102,7 +133,7 @@ export default function Meditacion() {
                     <div className="tabs-content">
                         {activeTab === 'active' && (
                             <div className="session-active">
-                                <h2 className="session-title">Meditación {tipo === 'mindfulness' ? 'Mindfulness' : 'Respiración'}</h2>
+                                <h2 className="session-title">Meditación {tipo === 'mindfulness' ? 'Mindfulness' : tipo === 'respiracion' ? 'Respiración' : 'Body Scan'}</h2>
                                 <p className="session-subtitle">Relájate durante {duracion} minutos</p>
 
                                 <div className="timer-circle">
@@ -112,7 +143,7 @@ export default function Meditacion() {
 
                                 <div className="session-controls">
                                     <label>Tipo de meditación</label>
-                                    <select value={tipo} onChange={e => setTipo(e.target.value)} className="control-select">
+                                    <select value={tipo} onChange={e => setTipo(e.target.value)} className="control-select" disabled={isRunning}>
                                         <option value="mindfulness">Mindfulness</option>
                                         <option value="respiracion">Respiración</option>
                                         <option value="body_scan">Body Scan</option>
@@ -124,18 +155,26 @@ export default function Meditacion() {
                                         max="30"
                                         value={duracion}
                                         onChange={e => {
-                                            setDuracion(Number(e.target.value));
-                                            if (!isRunning) setTimer(Number(e.target.value) * 60);
+                                            const val = Number(e.target.value);
+                                            setDuracion(val);
+                                            if (!isRunning) setTimer(val * 60);
                                         }}
                                         className="duration-slider"
+                                        disabled={isRunning}
                                     />
                                     <span>{duracion} min</span>
                                 </div>
 
                                 <div className="button-group">
-                                    <button onClick={startMeditacion} disabled={isRunning} className="button button-primary">
-                                        <Play /> {t('start')}
-                                    </button>
+                                    {!isRunning ? (
+                                        <button onClick={startMeditacion} className="button button-primary">
+                                            <Play /> {t('start')}
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => finalizarSesion(false)} className="button button-secondary">
+                                            Finalizar ahora
+                                        </button>
+                                    )}
                                     <button onClick={resetTimer} className="button button-secondary">
                                         <RotateCcw /> {t('reset')}
                                     </button>
@@ -189,6 +228,28 @@ export default function Meditacion() {
           border-radius: 50%;
           background: #9333ea;
           cursor: pointer;
+        }
+        .button {
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: none;
+          cursor: pointer;
+        }
+        .button-primary {
+          background: linear-gradient(135deg, #7c3aed, #667eea);
+          color: white;
+        }
+        .button-secondary {
+          background: #f3f4f6;
+          color: #333;
+        }
+        .button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
       `}</style>
         </div>

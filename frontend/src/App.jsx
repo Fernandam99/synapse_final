@@ -1,28 +1,34 @@
 // Este archivo es el punto de entrada principal de la aplicación React, gestionando rutas, temas y autenticación.
 import React, { useState, useEffect, Suspense } from 'react';
-import { Routes, Route, useNavigate, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+
+// Lazy imports
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Concentracion = React.lazy(() => import('./pages/Concentracion'));
-const Meditacion = React.lazy(() => import('./pages/Meditacion'));
+const Meditacion = React.lazy(() => import('./pages/Meditacion')); // ✅ IMPORTADO
+const SesionGrupal = React.lazy(() => import('./pages/SesionGrupal')); // ✅ IMPORTADO
+const Pomodoro = React.lazy(() => import('./pages/Pomodoro'));
+
+// Componentes comunes
 import PrivateRoute from './components/PrivateRoute';
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
 import Loader from './components/loader';
-// Load Navbar defensively: some environments may export it differently.
+
+// Load Navbar defensively
 const Navbar = React.lazy(async () => {
   const mod = await import('./components/Navbar');
-  // Try common export shapes and return a module with a default export
   const comp = mod.default || mod.Navbar || mod.Topbar || (() => <div />);
   return { default: comp };
 });
+
 import Footer from './components/Footer';
 import { logout as doLogout, getUsuario } from './services/auth';
 import AdminPanel from './pages/AdminPanel';
-
 
 export default function App() {
   const [loadingApp, setLoadingApp] = useState(true);
@@ -37,59 +43,45 @@ export default function App() {
     }
   });
 
-  // Apply theme to document and persist
+  // Apply theme
   useEffect(() => {
     try {
-      if (theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        window.localStorage.setItem('theme', theme);
-      }
+      document.documentElement.setAttribute('data-theme', theme);
+      window.localStorage.setItem('theme', theme);
     } catch (e) {
-      // ignore in non-browser envs
+      // ignore
     }
   }, [theme]);
 
-  // Show a startup loader until the app is ready.
+  // ✅ Loader seguro: siempre termina
   useEffect(() => {
     let mounted = true;
-    // Wait a small amount and the next animation frame to ensure
-    // CSS/JS resources and lazy chunks have a chance to load.
     const run = async () => {
-      const minMs = 20000; // keep loader visible at least 30s
-      const start = Date.now();
       try {
-        // Prefer waiting for window load if it hasn't fired yet
         if (document.readyState !== 'complete') {
           await new Promise((res) => window.addEventListener('load', res, { once: true }));
         }
+        await new Promise((res) => setTimeout(res, 300));
       } catch (e) {
-        /* ignore */
+        console.warn('App loader warning:', e);
+      } finally {
+        if (mounted) setLoadingApp(false);
       }
-      // ensure at least one frame and a tiny delay so animations appear smooth
-      await new Promise((res) => requestAnimationFrame(() => setTimeout(res, 180)));
-      const elapsed = Date.now() - start;
-      if (elapsed < minMs) {
-        // wait remaining time to reach the minimum duration
-        await new Promise((res) => setTimeout(res, minMs - elapsed));
-      }
-      if (mounted) setLoadingApp(false);
     };
     run();
     return () => { mounted = false; };
   }, []);
+
   const nav = useNavigate();
-  const location = useLocation();
 
   const openAuth = (mode = 'login') => { setAuthMode(mode); setAuthOpen(true); };
   const closeAuth = () => setAuthOpen(false);
 
   const handleLogout = () => {
-    // central logout handler: clear local user state and perform service logout
     setAuthOpen(false);
     try {
       doLogout();
     } catch (e) {
-      // fallback to full redirect if service logout fails
       window.location.href = '/';
       return;
     }
@@ -105,13 +97,11 @@ export default function App() {
     }
     setAuthOpen(false);
     try { nav('/dashboard', { replace: true }); } catch (e) { /* ignore */ }
-    // Refresh local user state after successful auth
-    try { setUsuario(getUsuario()); } catch (e) { /* ignore */ }
+    setUsuario(getUsuario());
   };
 
   return (
     <>
-      <div className="app-debug-banner">APP RENDER OK</div>
       {/* Fullscreen startup loader */}
       {loadingApp && (
         <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
@@ -126,22 +116,23 @@ export default function App() {
 
       <Suspense fallback={<div style={{ padding: 20 }}>Cargando...</div>}>
         <Routes>
-          {/* Páginas públicas */}
-          <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-          <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
+          {/* Redirecciones de login/register */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/register" element={<Navigate to="/" replace />} />
 
           {/* Páginas privadas */}
-          <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard /></PrivateRoute></div>} />
-          <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile /></PrivateRoute></div>} />
-          <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion /></PrivateRoute></div>} />
-          <Route path="/meditacion" element={<div className="container"><PrivateRoute><Meditacion /></PrivateRoute></div>} /> {/* ← NUEVA RUTA */}
-          <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings" /></PrivateRoute></div>} />
-          <Route path="/pomodoro" element={<div className="container"><PrivateRoute><Pomodoro /></PrivateRoute></div>} /> {/* ← NUEVA RUTA */}
-          
-          {/* Página principal */}
-          <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
+          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+          <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
+          <Route path="/concentracion" element={<PrivateRoute><Concentracion /></PrivateRoute>} />
+          <Route path="/meditacion" element={<PrivateRoute><Meditacion /></PrivateRoute>} /> {/* ✅ RUTA AGREGADA */}
+          <Route path="/sesion-grupal" element={<PrivateRoute><SesionGrupal /></PrivateRoute>} /> {/* ✅ RUTA AGREGADA */}
+          <Route path="/pomodoro" element={<PrivateRoute><Pomodoro /></PrivateRoute>} />
+          <Route path="/config" element={<PrivateRoute><Profile defaultTab="settings" /></PrivateRoute>} />
 
-          {/* Panel de administrador (sin PrivateRoute, asume que solo admins acceden o lo manejas en backend) */}
+          {/* Página principal */}
+          <Route path="/" element={<PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute>} />
+
+          {/* Admin */}
           <Route path="/admin" element={<AdminPanel />} />
         </Routes>
       </Suspense>
