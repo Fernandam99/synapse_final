@@ -20,6 +20,7 @@ const Navbar = React.lazy(async () => {
 });
 import Footer from './components/Footer';
 import { logout as doLogout, getUsuario } from './services/auth';
+import AdminPanel from './pages/AdminPanel';
 
 
 export default function App(){
@@ -131,6 +132,7 @@ export default function App(){
   <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
   <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
   <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
+  <Route path="/admin" element={<AdminPanel />} />
       </Routes>
       </Suspense>
       <Footer />

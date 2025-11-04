@@ -4,8 +4,11 @@ import os
 # Agrega la raíz del proyecto al path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from app.models import create_app
-from app.models import db, Rol, Tecnica, Recompensa
+from app import create_app
+from app.models import db
+from app.models.rol import Rol
+from app.models.tecnica import Tecnica
+from app.models.recompensa import Recompensa
 import json
 
 app = create_app()
@@ -15,14 +18,71 @@ def insertar_datos_iniciales():
         print("Insertando datos iniciales...")
         
         # Crear roles si no existen
-        if not Rol.query.first():
-            roles = [
-                Rol(nombre='administrador'),
-                Rol(nombre='usuario')
-            ]
-            for rol in roles:
+        roles = {
+            'admin': Rol.query.filter_by(nombre='admin').first() or Rol(nombre='admin'),
+            'usuario': Rol.query.filter_by(nombre='usuario').first() or Rol(nombre='usuario')
+        }
+        
+        for rol in roles.values():
+            if rol.id is None:
                 db.session.add(rol)
-            print("✓ Roles creados")
+        db.session.commit()
+        print("✓ Roles creados")
+        
+        # Crear usuarios si no existen
+        usuarios = [
+            {
+                'username': 'johan_dev',
+                'correo': 'johan@gmail.com',
+                'password': 'holasoyivan1234.',
+                'rol': 'admin'
+            },
+            {
+                'username': 'ivan_tech',
+                'correo': 'ivan@gmail.com',
+                'password': 'holasoyivan1234.',
+                'rol': 'admin'
+            },
+            {
+                'username': 'mafe_design',
+                'correo': 'mafe@gmail.com',
+                'password': 'Synapse2023!',
+                'rol': 'usuario'
+            },
+            {
+                'username': 'carol_user',
+                'correo': 'carol@gmail.com',
+                'password': 'SynapseApp2023!',
+                'rol': 'usuario'
+            },
+            {
+                'username': 'daniela_92',
+                'correo': 'dani92@gmail.com',
+                'password': 'Focus2023!',
+                'rol': 'usuario'
+            },
+            {
+                'username': 'sebastian_dev',
+                'correo': 'sebas@gmail.com',
+                'password': 'DevTeam2023!',
+                'rol': 'usuario'
+            }
+        ]
+
+        from werkzeug.security import generate_password_hash
+        from app.models.usuario import Usuario
+        
+        for user_data in usuarios:
+            if not Usuario.query.filter_by(correo=user_data['correo']).first():
+                nuevo_usuario = Usuario(
+                    username=user_data['username'],
+                    correo=user_data['correo'],
+                    password=generate_password_hash(user_data['password']),
+                    rol_id=roles[user_data['rol']].id
+                )
+                db.session.add(nuevo_usuario)
+        db.session.commit()
+        print("✓ Usuarios creados")
         
         # Crear técnicas de estudio básicas
         if not Tecnica.query.first():
@@ -82,6 +142,33 @@ def insertar_datos_iniciales():
             for recompensa in recompensas:
                 db.session.add(recompensa)
             print("✓ Recompensas básicas creadas")
+        
+        from app.models.tarea import Tarea
+        usuarios_db = Usuario.query.all()
+        for user in usuarios_db:
+            # Solo si el usuario no tiene tareas
+            if not user.tareas or len(user.tareas) == 0:
+                tareas = [
+                    Tarea(
+                        usuario_id=user.id_usuario,
+                        titulo=f'Tarea 1 de {user.username}',
+                        descripcion='Descripción de la tarea 1',
+                        estado='pendiente',
+                        prioridad='media'
+                    ),
+                    Tarea(
+                        usuario_id=user.id_usuario,
+                        titulo=f'Tarea 2 de {user.username}',
+                        descripcion='Descripción de la tarea 2',
+                        estado='completada',
+                        prioridad='alta',
+                        completada=True
+                    )
+                ]
+                for tarea in tareas:
+                    db.session.add(tarea)
+        db.session.commit()
+        print('✓ Tareas de ejemplo creadas para cada usuario')
         
         db.session.commit()
         print("🎉 Datos iniciales insertados correctamente!")

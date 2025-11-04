@@ -35,8 +35,13 @@ export default function Login({ onSuccess, onSwitchMode }) {
       saveToken(token);
       try { const apiInstance = require('../services/api').default; apiInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch {}
       if (usuario) saveUsuario(usuario);
-      if (onSuccess) { try { onSuccess('login'); } catch (e) { onSuccess(); } }
-      else nav('/dashboard');
+      if (usuario && usuario.rol_id === 1) {
+        alert(`Bienvenido administrador ${usuario.nombre_completo || usuario.Username || usuario.correo}`);
+        nav('/admin');
+        return;
+      }
+      if (onSuccess && !(usuario && usuario.rol_id === 1)) { try { onSuccess('login'); } catch (e) { onSuccess(); } }
+      else if (!(usuario && usuario.rol_id === 1)) nav('/dashboard');
     } catch (error) {
       console.error(error);
       setErr(error.response?.data?.error || error.response?.data || error.message);
