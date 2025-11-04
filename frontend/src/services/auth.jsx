@@ -1,6 +1,11 @@
-// Guarda el token de acceso en el localStorage
+// frontend/src/services/auth.jsx
+import api from './api';
+import config from './config';
+
+// Guarda el token de acceso en el localStorage y en el header de Axios
 export function saveToken(token) {
   localStorage.setItem('synapse_token', token);
+  api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
 
 // Obtiene el token de acceso desde el localStorage
@@ -16,7 +21,8 @@ export function saveUsuario(u) {
 // Obtiene los datos del usuario desde el localStorage
 export function getUsuario() {
   try {
-    return JSON.parse(localStorage.getItem('synapse_usuario') || 'null');
+    const raw = localStorage.getItem('synapse_usuario');
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
@@ -26,6 +32,6 @@ export function getUsuario() {
 export function logout() {
   localStorage.removeItem('synapse_token');
   localStorage.removeItem('synapse_usuario');
-  // Redirect to public Home after logout
+  delete api.defaults.headers.common['Authorization'];
   window.location.href = '/';
 }
