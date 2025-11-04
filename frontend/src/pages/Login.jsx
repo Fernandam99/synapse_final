@@ -38,14 +38,16 @@ export default function Login({ onSuccess, onSwitchMode }) {
       const token = res.data[cfg.tokenField];
       const usuario = res.data[cfg.usuarioField];
 
-      if (token && usuario) {
-        // Guardar en auth.js
-        import('../services/auth').then(authModule => {
-          authModule.saveToken(token);
-          authModule.saveUsuario(usuario);
-          if (onSuccess) onSuccess('login');
-        });
+      if (!token) {
+        setErr(t('err_no_token', 'No access_token found in response'));
+        return;
       }
+
+      saveToken(token);
+      try { const apiInstance = require('../services/api').default; apiInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch {}
+      if (usuario) saveUsuario(usuario);
+      if (onSuccess) { try { onSuccess('login'); } catch (e) { onSuccess(); } }
+      else nav('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       const msg = error.response?.data?.error || error.message || t('err_login_generic', 'Credenciales inválidas');

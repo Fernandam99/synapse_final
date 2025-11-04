@@ -32,12 +32,13 @@ class Usuario(db.Model):
 
 
     def to_dict(self):
-        return {
-            'id_usuario': self.id_usuario,
-            'username': self.username,
-            'correo': self.correo,
-            'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None,
-            'ultimo_acceso': self.ultimo_acceso.isoformat() if self.ultimo_acceso else None,
-            'rol_id': self.rol_id,
-            'activo': self.activo
-        }
+            return {
+                'id_usuario': self.id_usuario,
+                'username': self.username,
+                'correo': self.correo,
+                'fecha_registro': self.fecha_registro.isoformat() if self.fecha_registro else None,
+                'ultimo_acceso': self.ultimo_acceso.isoformat() if self.ultimo_acceso else None,
+                'rol_id': self.rol_id,
+                'activo': self.activo,
+                'tareas': [tarea.to_dict() for tarea in self.tareas]
+            }

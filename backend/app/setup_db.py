@@ -12,9 +12,9 @@ from app.config import Config
 # Configuración para conectar sin seleccionar base de datos
 # Cambien estos valores según su configuración local
 HOST = 'localhost'
-PORT = 3307
+PORT = 3306
 USER = 'root'
-PASSWORD = 'koal'
+PASSWORD = 'root'
 DATABASE = 'synapse_db'
 
 def create_database():
