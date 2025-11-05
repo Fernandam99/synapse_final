@@ -7,6 +7,7 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Concentracion = React.lazy(() => import('./pages/Concentracion'));
+const SalaPage = React.lazy(() => import('./pages/Sala'));
 import PrivateRoute from './components/PrivateRoute'; 
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
@@ -133,6 +134,7 @@ export default function App(){
   <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
   <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
   <Route path="/admin" element={<AdminPanel />} />
+  <Route path="/salas" element={<div className="container"><PrivateRoute><SalaPage/></PrivateRoute></div>} />
       </Routes>
       </Suspense>
       <Footer />
