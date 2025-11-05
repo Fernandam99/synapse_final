@@ -1,42 +1,147 @@
-/* Estilos para la sección de configuración */
+/* ProfileSettings.css - Estilos completos para configuración */
+
+/* Sección de configuración principal */
 .settings-section {
-  padding: 24px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-top: 20px;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* Grupos de configuración */
 .settings-group {
-  margin-bottom: 32px;
+  padding: 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.settings-group:last-child {
+  border-bottom: none;
 }
 
 .settings-group h3 {
-  color: #333;
-  margin-bottom: 16px;
-  font-size: 1.2rem;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 20px 0;
 }
 
+/* Opción individual de configuración */
 .settings-option {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+  border-bottom: 1px solid #f5f5f5;
 }
 
-.danger-button {
-  background: var(--primary-gradient);
-  color: white;
+.settings-option:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.settings-option-info {
+  flex: 1;
+}
+
+.settings-option-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 4px 0;
+}
+
+.settings-option-description {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.3s;
   border: none;
-  padding: 12px 24px;
+  padding: 0;
+}
+
+.toggle-switch.active {
+  background: linear-gradient(135deg, #a855f7, #ec4899);
+}
+
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-switch.active::after {
+  transform: translateX(20px);
+}
+
+/* Botones de acción */
+.action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #6b21a8;
   border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.action-button:hover {
+  border-color: #a855f7;
+  background: #faf5ff;
+}
+
+.action-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Botón de eliminar cuenta */
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 2px solid #fecaca;
+  background: white;
+  color: #dc2626;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
   transition: all 0.3s;
 }
 
 .danger-button:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  border-color: #dc2626;
+  background: #fef2f2;
 }
 
-/* Modal de confirmación */
+.danger-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Modal backdrop */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -48,78 +153,159 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s ease;
 }
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Modal de confirmación */
 .confirmation-modal {
   background: white;
-  padding: 24px;
-  border-radius: 12px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 32px;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .confirmation-modal h3 {
-  color: #333;
-  margin-bottom: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px 0;
 }
 
 .confirmation-modal p {
+  font-size: 14px;
   color: #666;
-  margin-bottom: 16px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
 }
 
-.confirmation-modal input {
+.confirmation-modal input[type="password"] {
   width: 100%;
-  padding: 12px;
-  border: 1px solid #d9d9d9;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
   border-radius: 8px;
-  margin-bottom: 16px;
+  font-size: 14px;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
 }
 
+.confirmation-modal input[type="password"]:focus {
+  outline: none;
+  border-color: #a855f7;
+}
+
+/* Acciones del modal */
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+  margin-top: 24px;
 }
 
 .cancel-button {
-  padding: 10px 20px;
-  border: 1px solid #d9d9d9;
-  background: var(--primary-gradient);
-  color: white;
+  padding: 10px 24px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  color: #666;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
   transition: all 0.3s;
 }
 
 .cancel-button:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+  border-color: #d1d5db;
+  background: #f9fafb;
 }
 
 .confirm-button {
-  padding: 10px 20px;
-  background: var(--primary-gradient);
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #a855f7, #ec4899);
   color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
   transition: all 0.3s;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
 }
 
-.confirm-button:hover {
-  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+.confirm-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(168, 85, 247, 0.4);
+}
+
+.confirm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .confirm-button.danger {
-  background: #ff4d4f;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
+.confirm-button.danger:hover:not(:disabled) {
+  box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
+}
+
+/* Mensaje de error */
 .error-message {
-  background: #fff2f0;
-  border: 1px solid #ffccc7;
-  padding: 12px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
   border-radius: 8px;
-  color: #ff4d4f;
-  margin-bottom: 16px;
+  color: #dc2626;
+  font-size: 14px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-message::before {
+  content: '⚠️';
+  font-size: 16px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .settings-group {
+    padding: 20px 16px;
+  }
+
+  .confirmation-modal {
+    padding: 24px;
+    max-width: 95%;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .cancel-button,
+  .confirm-button {
+    width: 100%;
+    justify-content: center;
+  }
 }

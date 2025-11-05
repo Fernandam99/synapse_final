@@ -303,6 +303,29 @@ body {
     box-shadow: 0 8px 20px rgba(5, 150, 105, 0.25);
 }
 
+/* Center pills and place start button fixed to the right inside the panel */
+.feature-pills {
+    position: relative;
+}
+.feature-pills-center {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.start-wrapper {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.start-pill {
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
 /* --- Benefits Section --- */
 .benefits { 
     margin-top: 20px; 
@@ -1059,4 +1082,11 @@ body {
     .sound-grid {
         grid-template-columns: repeat(3, 1fr); /* Tres columnas en móvil para sonidos */
     }
+}
+
+/* HIDE any floating sound control added temporarily or by other components
+   If a floating sound/volume pill appears in the bottom-left, these selectors
+   will hide it without removing source code. Use when quick UI removal is needed. */
+.sound-floating, .sound-pill, .sound-toast, .floating-sound-control, [data-sound-control] {
+    display: none !important;
 }

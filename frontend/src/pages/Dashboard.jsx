@@ -19,6 +19,16 @@ function colorForId(id) {
 
 export default function Dashboard() {
   const usuario = getUsuario();
+  const getDisplayName = (u) => {
+    if (!u) return 'Usuario';
+    const cand = u.nombre_completo || u.nombre || u.name || u.Username || u.username || u.correo || u.email || '';
+    if (!cand) return 'Usuario';
+    if (cand.includes('@')) {
+      const before = cand.split('@')[0];
+      return before.split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    }
+    return cand.charAt(0).toUpperCase() + cand.slice(1);
+  };
   const [tareas, setTareas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -146,7 +156,7 @@ export default function Dashboard() {
         <div className="dashboard-left">
           <div className="left-form card">
             <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-gradient)', padding: '10px 14px', borderRadius: 8, color: '#ffffff' }}>
-              <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {usuario?.nombre_completo || usuario?.Username || usuario?.name || 'Usuario'}</h2>
+              <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {getDisplayName(usuario)}</h2>
             </div>
 
             <form onSubmit={handleCreateOrUpdate} style={{ marginTop: 12 }}>

@@ -104,7 +104,7 @@ export default function App(){
       return;
     }
     setAuthOpen(false);
-  try { nav('/pomodoro', { replace: true }); } catch (e) { /* ignore */ }
+  try { nav('/dashboard', { replace: true }); } catch (e) { /* ignore */ }
     // Refresh local user state after successful auth
     try { setUsuario(getUsuario()); } catch (e) { /* ignore */ }
   };

@@ -12,6 +12,19 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const { t, i18n } = useTranslation();
+  // Display name helper: prefer full name fields, fall back to username or email prefix
+  const getDisplayName = (u) => {
+    if (!u) return 'Usuario';
+    const cand = u.nombre_completo || u.nombre || u.name || u.Username || u.username || u.username || u.correo || u.email || '';
+    if (!cand) return 'Usuario';
+    // If it's an email, use the part before @ and prettify
+    if (cand.includes('@')) {
+      const before = cand.split('@')[0];
+      return before.split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    }
+    // Otherwise, capitalize first letter
+    return cand.charAt(0).toUpperCase() + cand.slice(1);
+  };
   // Por defecto colapsado; se expandirá solo cuando el usuario pase el mouse
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
@@ -161,8 +174,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-haspopup="true" 
                     style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
                 >
-                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
-                  <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
+                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{getDisplayName(user).charAt(0).toUpperCase()}</div>
+                  <span className="btn-label" style={{ textAlign: 'left' }}>{getDisplayName(user)}</span>
                 </button>
 
                 {openProfile && (
