@@ -1,8 +1,9 @@
+// frontend/src/pages/Meditacion.jsx
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Droplet, Star, Play, RotateCcw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import meditacionService from '../services/meditacionService'; // ← IMPORTADO
+import meditacionService from '../services/meditacionService';
 
 export default function Meditacion() {
     const { t } = useTranslation();
@@ -11,26 +12,104 @@ export default function Meditacion() {
     const [isRunning, setIsRunning] = useState(false);
     const [duracion, setDuracion] = useState(10);
     const [tipo, setTipo] = useState('mindfulness');
-    const [sessionId, setSessionId] = useState(null); // ← NUEVO
+    const [sessionId, setSessionId] = useState(null);
 
-    const stats = {
-        weekMinutes: 45,
-        completedSessions: 5,
-        streak: 3,
-        effectiveness: 82
+    // ✅ Datos dinámicos desde API
+    const [stats, setStats] = useState({
+        weekMinutes: 0,
+        completedSessions: 0,
+        streak: 0,
+        effectiveness: 0
+    });
+    const [progressData, setProgressData] = useState([]);
+    const [loadingStats, setLoadingStats] = useState(true);
+
+    // ✅ Cargar datos desde API al montar el componente
+    useEffect(() => {
+        const cargarDatos = async () => {
+            try {
+                const res = await meditacionService.getHistorial();
+                const historial = res.data || [];
+
+                // Calcular estadísticas
+                const hoy = new Date();
+                const hace7dias = new Date();
+                hace7dias.setDate(hoy.getDate() - 7);
+
+                const sesionesCompletadas = historial.filter(s => s.estado === 'Completado');
+                const completadasEstaSemana = sesionesCompletadas.filter(s => {
+                    const fecha = new Date(s.inicio);
+                    return fecha >= hace7dias && fecha <= hoy;
+                });
+
+                const totalMinutosSemana = completadasEstaSemana.reduce((sum, s) => sum + (s.duracion_real || 0), 0);
+                const racha = calcularRacha(historial); // Implementación abajo
+
+                setStats({
+                    weekMinutes: Math.round(totalMinutosSemana),
+                    completedSessions: sesionesCompletadas.length,
+                    streak: racha,
+                    effectiveness: sesionesCompletadas.length > 0 ? Math.round((sesionesCompletadas.length / historial.length) * 100) : 0
+                });
+
+                // Preparar datos para el gráfico (últimos 7 días)
+                const dias = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+                const data = dias.map((dia, i) => {
+                    const fecha = new Date(hace7dias);
+                    fecha.setDate(hace7dias.getDate() + i);
+                    const minutos = completadasEstaSemana
+                        .filter(s => new Date(s.fecha).toDateString() === fecha.toDateString())
+                        .reduce((sum, s) => sum + (s.duracion_real || 0), 0);
+                    return { day: dia, minutes: minutos };
+                });
+                setProgressData(data);
+            } catch (err) {
+                console.error('Error al cargar historial:', err);
+                // Mantener valores por defecto en caso de error
+                setStats({ weekMinutes: 0, completedSessions: 0, streak: 0, effectiveness: 0 });
+                setProgressData([
+                    { day: 'Lun', minutes: 0 },
+                    { day: 'Mar', minutes: 0 },
+                    { day: 'Mié', minutes: 0 },
+                    { day: 'Jue', minutes: 0 },
+                    { day: 'Vie', minutes: 0 },
+                    { day: 'Sáb', minutes: 0 },
+                    { day: 'Dom', minutes: 0 }
+                ]);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        cargarDatos();
+    }, []);
+
+    // Función auxiliar para calcular racha
+    const calcularRacha = (historial) => {
+        if (historial.length === 0) return 0;
+        const fechasCompletadas = [...new Set(
+            historial
+                .filter(s => s.estado === 'Completado')
+                .map(s => new Date(s.inicio).toDateString())
+        )].sort((a, b) => new Date(b) - new Date(a));
+
+        let racha = 0;
+        let fechaAnterior = new Date();
+
+        for (const fechaStr of fechasCompletadas) {
+            const fecha = new Date(fechaStr);
+            const diffDias = Math.floor((fechaAnterior - fecha) / (1000 * 60 * 60 * 24));
+            if (diffDias === 1) {
+                racha++;
+            } else if (diffDias > 1) {
+                break;
+            }
+            fechaAnterior = fecha;
+        }
+        return racha;
     };
 
-    const progressData = [
-        { day: 'Lun', minutes: 10 },
-        { day: 'Mar', minutes: 15 },
-        { day: 'Mié', minutes: 0 },
-        { day: 'Jue', minutes: 20 },
-        { day: 'Vie', minutes: 10 },
-        { day: 'Sáb', minutes: 0 },
-        { day: 'Dom', minutes: 0 }
-    ];
-
-    // Temporizador + finalización automática
+    // Temporizador
     useEffect(() => {
         let interval = null;
         if (isRunning && timer > 0) {
@@ -47,15 +126,11 @@ export default function Meditacion() {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // ✅ INICIAR con backend
     const startMeditacion = async () => {
         try {
-            const payload = {
-                duracion: duracion,
-                tipo_meditacion: tipo
-            };
+            const payload = { duracion: duracion, tipo_meditacion: tipo };
             const res = await meditacionService.iniciar(payload);
-            setSessionId(res.data.meditacion.sesion_id); // ← Guardamos ID de sesión
+            setSessionId(res.data.meditacion.sesion_id);
             setTimer(duracion * 60);
             setIsRunning(true);
         } catch (err) {
@@ -64,13 +139,12 @@ export default function Meditacion() {
         }
     };
 
-    // ✅ FINALIZAR con backend
     const finalizarSesion = async (completada = false) => {
         if (!sessionId) return;
         try {
             await meditacionService.finalizar({
                 completado_totalmente: completada,
-                calificacion: completada ? 5 : 3 // ← Ejemplo: calificación automática (puedes pedirla al usuario)
+                calificacion: completada ? 5 : null
             });
         } catch (err) {
             console.error('Error al finalizar meditación:', err);
@@ -82,7 +156,7 @@ export default function Meditacion() {
 
     const resetTimer = () => {
         if (isRunning && sessionId) {
-            finalizarSesion(false); // Finaliza si estaba activa
+            finalizarSesion(false);
         }
         setTimer(duracion * 60);
     };
@@ -97,28 +171,39 @@ export default function Meditacion() {
                     </p>
                 </div>
 
-                <div className="stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-icon purple"><Clock /></div>
-                        <div className="stat-value">{stats.weekMinutes}min</div>
-                        <div className="stat-label">{t('this_week')}</div>
+                {/* Mostrar loader de estadísticas si están cargando */}
+                {loadingStats ? (
+                    <div className="stats-grid">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="stat-card" style={{ opacity: 0.6 }}>
+                                <div className="stat-value">--</div>
+                            </div>
+                        ))}
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-icon pink"><Calendar /></div>
-                        <div className="stat-value">{stats.completedSessions}</div>
-                        <div className="stat-label">Sesiones</div>
+                ) : (
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-icon purple"><Clock /></div>
+                            <div className="stat-value">{stats.weekMinutes}min</div>
+                            <div className="stat-label">{t('this_week')}</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon pink"><Calendar /></div>
+                            <div className="stat-value">{stats.completedSessions}</div>
+                            <div className="stat-label">Sesiones</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon blue"><Droplet /></div>
+                            <div className="stat-value">{stats.streak}</div>
+                            <div className="stat-label">Días seguidos</div>
+                        </div>
+                        <div className="stat-card">
+                            <div className="stat-icon purple"><Star /></div>
+                            <div className="stat-value">{stats.effectiveness}%</div>
+                            <div className="stat-label">Efectividad</div>
+                        </div>
                     </div>
-                    <div className="stat-card">
-                        <div className="stat-icon blue"><Droplet /></div>
-                        <div className="stat-value">{stats.streak}</div>
-                        <div className="stat-label">Días seguidos</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-icon purple"><Star /></div>
-                        <div className="stat-value">{stats.effectiveness}%</div>
-                        <div className="stat-label">Efectividad</div>
-                    </div>
-                </div>
+                )}
 
                 <div className="tabs-container">
                     <div className="tabs-header">
@@ -133,7 +218,9 @@ export default function Meditacion() {
                     <div className="tabs-content">
                         {activeTab === 'active' && (
                             <div className="session-active">
-                                <h2 className="session-title">Meditación {tipo === 'mindfulness' ? 'Mindfulness' : tipo === 'respiracion' ? 'Respiración' : 'Body Scan'}</h2>
+                                <h2 className="session-title">
+                                    Meditación {tipo === 'mindfulness' ? 'Mindfulness' : tipo === 'respiracion' ? 'Respiración' : 'Body Scan'}
+                                </h2>
                                 <p className="session-subtitle">Relájate durante {duracion} minutos</p>
 
                                 <div className="timer-circle">
@@ -191,7 +278,13 @@ export default function Meditacion() {
                                         <XAxis dataKey="day" stroke="#666" />
                                         <YAxis stroke="#666" />
                                         <Tooltip />
-                                        <Line type="monotone" dataKey="minutes" stroke="#ec4899" strokeWidth={3} dot={{ fill: '#ec4899', r: 6 }} />
+                                        <Line
+                                            type="monotone"
+                                            dataKey="minutes"
+                                            stroke="#ec4899"
+                                            strokeWidth={3}
+                                            dot={{ fill: '#ec4899', r: 6 }}
+                                        />
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
@@ -250,6 +343,41 @@ export default function Meditacion() {
         .button:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 16px;
+          margin: 24px 0;
+        }
+        .stat-card {
+          background: white;
+          padding: 16px;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+          text-align: center;
+        }
+        .stat-icon {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          margin-bottom: 12px;
+          color: white;
+        }
+        .stat-icon.purple { background: #7c3aed; }
+        .stat-icon.pink { background: #ec4899; }
+        .stat-icon.blue { background: #3b82f6; }
+        .stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          margin: 8px 0;
+        }
+        .stat-label {
+          color: #666;
+          font-size: 14px;
         }
       `}</style>
         </div>

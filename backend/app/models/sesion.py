@@ -13,8 +13,7 @@ class Sesion(db.Model):
     tecnica_id = db.Column(db.String(36), db.ForeignKey('tecnica.id_tecnica'), nullable=False)
     fecha_inicio = db.Column(db.DateTime(6), default=datetime.utcnow, nullable=False)
     fecha_fin = db.Column(db.DateTime(6), nullable=True)
-    completada = db.Column(db.Boolean, default=False)
-    duracion_real = db.Column(db.Integer, nullable=False)
+    duracion_real = db.Column(db.Integer, nullable=True) 
     estado = db.Column(db.String(20), nullable=False)
     es_grupal = db.Column(db.Boolean, default=False)
 
@@ -25,7 +24,7 @@ class Sesion(db.Model):
             'tecnica_id': self.tecnica_id,
             'fecha_inicio': self.fecha_inicio.isoformat(),
             'fecha_fin': self.fecha_fin.isoformat() if self.fecha_fin else None,
-            'completada': self.completada,
+            'completada': self.estado == 'Completado',  
             'duracion_real': self.duracion_real,
             'estado': self.estado,
             'es_grupal': self.es_grupal

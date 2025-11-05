@@ -1,19 +1,22 @@
 import api from './api';
 
 const meditacionService = {
-    // POST /api/bienestar/meditacion/iniciar
+    // Iniciar sesión de meditación
     iniciar: (data) => {
         return api.post('/bienestar/meditacion/iniciar', data);
     },
-
-    // POST /api/bienestar/meditacion/finalizar
+    // Finalizar sesión de meditación
     finalizar: (data) => {
         return api.post('/bienestar/meditacion/finalizar', data);
     },
-
-    // GET /api/bienestar/meditacion/sesion-actual
-    getSesionActual: () => {
-        return api.get('/bienestar/meditacion/sesion-actual');
+    // Obtener historial de sesiones de meditación
+    getHistorial: async () => {
+        const res = await api.get('/sesiones');
+        // Filtrar solo sesiones de meditación
+        return res.data.filter(sesion =>
+            sesion.tecnica_nombre?.toLowerCase().includes('meditacion') ||
+            sesion.tecnica_nombre?.toLowerCase().includes('meditación')
+        );
     }
 };
 
