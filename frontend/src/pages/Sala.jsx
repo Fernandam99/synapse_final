@@ -90,80 +90,123 @@ export default function SalaPage() {
     }
   }
 
+  async function copyText(text) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('Código copiado al portapapeles');
+    } catch (e) {
+      // Fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); alert('Código copiado al portapapeles'); } catch (err) { prompt('Copia el código manualmente:', text); }
+      ta.remove();
+    }
+  }
+
   return (
     <div className="container">
       <h1>Salas</h1>
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <div style={{ display: 'flex', gap: 20 }}>
-        <div style={{ flex: 1 }}>
-          <h2>Crear sala</h2>
-          <form onSubmit={handleCreate}>
-            <label>Nombre<br /><input name="nombre" value={form.nombre} onChange={handleChange} /></label><br />
-            <label>Descripción<br /><input name="descripcion" value={form.descripcion} onChange={handleChange} /></label><br />
-            <label>Privada <input type="checkbox" name="es_privada" checked={form.es_privada} onChange={handleChange} /></label><br />
-            <label>Max participantes<br /><input name="max_participantes" type="number" value={form.max_participantes} onChange={handleChange} /></label><br />
-            <button type="submit">Crear</button>
-          </form>
+      {error && <div className="error-text">{error}</div>}
+      <div className="sala-grid">
+        <div className="sala-column">
+          <div className="card">
+            <h2 className="card-title">Crear sala</h2>
+            <form onSubmit={handleCreate} className="form-stack">
+              <label className="field">Nombre<br /><input name="nombre" value={form.nombre} onChange={handleChange} className="input" /></label>
+              <label className="field">Descripción<br /><input name="descripcion" value={form.descripcion} onChange={handleChange} className="input" /></label>
+              <label className="field">Privada <input type="checkbox" name="es_privada" checked={form.es_privada} onChange={handleChange} /></label>
+              <label className="field">Max participantes<br /><input name="max_participantes" type="number" value={form.max_participantes} onChange={handleChange} className="input" /></label>
+              <button type="submit" className="btn primary">Crear</button>
+            </form>
+          </div>
 
-          <h2>Mis salas</h2>
-          {loading ? <div>Cargando...</div> : (
-            <ul>
-              {mySalas.map(s => (
-                <li key={s.id_sala}>
-                  <strong>{s.nombre}</strong> {s.es_privada ? '(Privada)' : ''} — creado por ti
-                  <button onClick={() => handleOpenSala(s.id_sala)} style={{ marginLeft: 8 }}>Abrir</button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <div className="card" style={{ marginTop: 16 }}>
+            <h2 className="card-title">Mis salas</h2>
+            {loading ? <div>Cargando...</div> : (
+              <div className="sala-list">
+                {mySalas.map(s => (
+                  <div className="sala-card" key={s.id_sala}>
+                    <div className="sala-info">
+                      <div className="sala-name">{s.nombre} {s.es_privada ? <span className="tag">Privada</span> : null}</div>
+                      <div className="sala-meta">{s.descripcion}</div>
+                    </div>
+                    <div className="sala-actions">
+                      <button className="btn" onClick={() => handleOpenSala(s.id_sala)}>Abrir</button>
+                      {s.creador_id === usuario?.id_usuario && s.codigo_acceso && (
+                        <button className="btn copy-btn" onClick={() => copyText(s.codigo_acceso)}>Copiar código</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{ flex: 1 }}>
-          <h2>Salas públicas</h2>
-          {loading ? <div>Cargando...</div> : (
-            <ul>
-              {publicSalas.map(s => (
-                <li key={s.id_sala}>
-                  <strong>{s.nombre}</strong> — creador: {s.creador?.username || s.creador?.correo}
-                  <button onClick={() => handleOpenSala(s.id_sala)} style={{ marginLeft: 8 }}>Ver detalles</button>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="sala-column">
+          <div className="card">
+            <h2 className="card-title">Salas públicas</h2>
+            {loading ? <div>Cargando...</div> : (
+              <div className="sala-list">
+                {publicSalas.map(s => (
+                  <div className="sala-card" key={s.id_sala}>
+                    <div className="sala-info">
+                      <div className="sala-name">{s.nombre}</div>
+                      <div className="sala-meta">creador: {s.creador?.username || s.creador?.correo}</div>
+                    </div>
+                    <div className="sala-actions">
+                      <button className="btn" onClick={() => handleOpenSala(s.id_sala)}>Ver detalles</button>
+                      {s.creador_id === usuario?.id_usuario && s.codigo_acceso && (
+                        <button className="btn copy-btn" onClick={() => copyText(s.codigo_acceso)}>Copiar código</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-          <h3>Unirse a sala privada</h3>
-          <div>
-            <input placeholder="ID de sala" id="joinId" />
-            <input placeholder="Código de acceso" value={joinCode} onChange={e => setJoinCode(e.target.value)} />
-            <button onClick={() => handleJoin(document.getElementById('joinId').value)}>Unirse</button>
+            <h3 style={{ marginTop: 12 }}>Unirse a sala privada</h3>
+            <div className="form-inline">
+              <input placeholder="ID de sala" id="joinId" className="input" />
+              <input placeholder="Código de acceso" value={joinCode} onChange={e => setJoinCode(e.target.value)} className="input" />
+              <button className="btn" onClick={() => handleJoin(document.getElementById('joinId').value)}>Unirse</button>
+            </div>
           </div>
         </div>
       </div>
 
       {selectedSala && (
-        <div style={{ marginTop: 20, border: '1px solid #ddd', padding: 12 }}>
+        <div className="card" style={{ marginTop: 20 }}>
           <h3>Detalle sala: {selectedSala.nombre}</h3>
-          <p>{selectedSala.descripcion}</p>
+          <p className="sala-desc">{selectedSala.descripcion}</p>
           <p>Creada por: {selectedSala.creador_id}</p>
           <p>Participantes: {selectedSala.total_participantes}</p>
           {selectedSala.participantes && (
-            <ul>
+            <ul className="participants-list">
               {selectedSala.participantes.map(p => (
                 <li key={p.id_usuario}>{p.username || p.Username || p.correo}</li>
               ))}
             </ul>
           )}
 
-          {/* Mostrar botón salir o eliminar si eres líder */}
-          {selectedSala.creador_id === usuario?.id_usuario && (
-            <div>
-              <em>Eres el creador/leader de esta sala.</em>
+          {selectedSala.creador_id === usuario?.id_usuario && selectedSala.codigo_acceso && (
+            <div className="access-block">
+              <div>Código de acceso:</div>
+              <div className="access-code">{selectedSala.codigo_acceso}</div>
+              <button className="btn copy-btn" onClick={() => copyText(selectedSala.codigo_acceso)}>Copiar código</button>
             </div>
           )}
 
-          <div style={{ marginTop: 8 }}>
-            <button onClick={() => setSelectedSala(null)}>Cerrar</button>
-            <button onClick={() => handleLeave(selectedSala.id_sala)} style={{ marginLeft: 8 }}>Salir</button>
+          {selectedSala.creador_id === usuario?.id_usuario && (
+            <div style={{ marginTop: 8 }}><em>Eres el creador/leader de esta sala.</em></div>
+          )}
+
+          <div style={{ marginTop: 12 }}>
+            <button className="btn" onClick={() => setSelectedSala(null)}>Cerrar</button>
+            <button className="btn" onClick={() => handleLeave(selectedSala.id_sala)} style={{ marginLeft: 8 }}>Salir</button>
           </div>
         </div>
       )}

@@ -2725,3 +2725,36 @@ body:has(.sidebar.expanded) .site-footer .footer-inner {
     box-shadow: none;
     border-color: var(--border-default);
   }
+
+/* Sala page styles */
+.sala-grid {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+}
+.sala-column { flex: 1; }
+.card {
+        background: var(--bg-primary);
+        border: 1px solid var(--border-default);
+        padding: 16px;
+        border-radius: 10px;
+        box-shadow: var(--shadow-light);
+}
+.card-title { margin: 0 0 8px 0; color: var(--text-primary); }
+.form-stack .field { display: block; margin-bottom: 10px; color: var(--text-secondary); }
+.input { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--input-border); background: var(--input-bg); color: var(--text-primary); }
+.btn { background: transparent; border: 1px solid var(--border-default); padding: 8px 10px; border-radius: 8px; cursor: pointer; color: var(--text-primary); }
+.btn.primary { background: linear-gradient(90deg, var(--primary-purple-light), var(--primary-purple-dark)); color: var(--text-on-primary); border: none; box-shadow: var(--shadow-primary); }
+.form-inline { display:flex; gap:8px; align-items:center; }
+.sala-list { display:flex; flex-direction:column; gap:8px; }
+.sala-card { display:flex; justify-content:space-between; align-items:center; padding:10px; border-radius:8px; border:1px solid var(--border-light); background:var(--bg-secondary); }
+.sala-info { max-width: 70%; }
+.sala-name { font-weight:700; color:var(--text-primary); }
+.sala-meta { font-size: 13px; color:var(--text-muted); }
+.sala-actions { display:flex; gap:8px; align-items:center; }
+.copy-btn { background: linear-gradient(90deg, var(--accent-blue), var(--accent-blue-light)); color:var(--text-on-primary); border:none; }
+.tag { background: var(--bg-accent); padding:2px 6px; border-radius:6px; font-size:12px; margin-left:6px; }
+.error-text { color: var(--state-danger-primary); margin-bottom: 8px; }
+.participants-list { list-style: none; padding-left: 0; }
+.access-block { display:flex; gap:10px; align-items:center; margin-top:8px; }
+.access-code { background: var(--bg-tertiary); padding:6px 10px; border-radius:6px; border:1px solid var(--border-default); font-family: monospace; }
