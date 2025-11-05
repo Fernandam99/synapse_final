@@ -50,7 +50,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
     { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
+  { path: '/salas', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
   ];
 
