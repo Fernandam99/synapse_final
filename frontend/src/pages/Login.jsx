@@ -39,17 +39,22 @@ export default function Login({ onSuccess, onSwitchMode }) {
       else nav('/dashboard');
     } catch (error) {
       console.error(error);
+
       // Normalize backend messages: map 'Cuenta desactivada' or similar to 'Cuenta no existe'
       const serverMsg = error.response?.data?.error || error.response?.data || error.message || '';
       const normalized = typeof serverMsg === 'string' && /desactiv/i.test(serverMsg)
         ? 'Esta cuenta no existe, registate'
         : serverMsg;
       setErr(normalized);
+
+      setErr(error.response?.data?.error || error.response?.data || error.message);
+
     }
   };
 
   return (
    <div style={{ fontFamily: 'Inter, system-ui, Arial' }}> 
+
 
   <div style={{ textAlign: 'center', marginBottom: 24 }}>
     <h2 className="auth-title" style={{ margin: 0 }}>{t('login')}</h2>
@@ -65,6 +70,14 @@ export default function Login({ onSuccess, onSwitchMode }) {
             <path fill="#4285F4" d="M24 46.9c6.1 0 11.2-2 14.9-5.4l-7.3-5.9c-2 1.4-5.1 2.8-7.6 2.8-6.4 0-11.8-4.5-13.7-10.6l-7.4 5.7C6.9 41.2 14.8 46.9 24 46.9z"/>
           </svg>
         </span>
+
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>{t('login')}</h2>
+      </div>
+
+      <button className="google-btn" type="button">
+        <span className="google-icon"><img src="/static/IMG/google.svg" alt={t('google_alt', 'Google')} /></span>
+
         <span>{t('continue_with_google', 'Continuar con Google')}</span>
       </button>
 
@@ -105,4 +118,8 @@ export default function Login({ onSuccess, onSwitchMode }) {
         `}</style>
     </div>
   );
+
 }
+
+}
+

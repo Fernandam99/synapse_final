@@ -6,9 +6,13 @@ const Register = React.lazy(() => import('./pages/Register'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
+
 const Concentracion = React.lazy(() => import('./pages/Pomodoro'));
 const Pomodoro = React.lazy(() => import('./pages/Pomodoro'));
 const Tareas = React.lazy(() => import('./pages/Tareas'));
+
+const Concentracion = React.lazy(() => import('./pages/Concentracion'));
+
 import PrivateRoute from './components/PrivateRoute'; 
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
@@ -22,6 +26,10 @@ const Navbar = React.lazy(async () => {
 });
 import Footer from './components/Footer';
 import { logout as doLogout, getUsuario } from './services/auth';
+
+
+import AdminPanel from './pages/AdminPanel';
+
 
 
 export default function App(){
@@ -55,7 +63,11 @@ export default function App(){
     // Wait a small amount and the next animation frame to ensure
     // CSS/JS resources and lazy chunks have a chance to load.
     const run = async () => {
+
       const minMs = 10000; // keep loader visible at least 20s
+
+      const minMs = 20000; // keep loader visible at least 30s
+
       const start = Date.now();
       try {
         // Prefer waiting for window load if it hasn't fired yet
@@ -104,7 +116,11 @@ export default function App(){
       return;
     }
     setAuthOpen(false);
+
   try { nav('/dashboard', { replace: true }); } catch (e) { /* ignore */ }
+
+    try { nav('/dashboard', { replace: true }); } catch (e) { /* ignore */ }
+
     // Refresh local user state after successful auth
     try { setUsuario(getUsuario()); } catch (e) { /* ignore */ }
   };
@@ -129,12 +145,20 @@ export default function App(){
         <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
         <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
   <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
+
   <Route path="/pomodoro" element={<div className="container"><PrivateRoute><Pomodoro/></PrivateRoute></div>} />
   <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
   <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
     <Route path="/tareas" element={<div className="container"><PrivateRoute><Tareas/></PrivateRoute></div>} />
   <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
   <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
+
+  <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
+  <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
+  <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
+  <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
+  <Route path="/admin" element={<AdminPanel />} />
+
       </Routes>
       </Suspense>
       <Footer />

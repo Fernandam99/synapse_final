@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+
 import { Sun, Moon, Check } from 'lucide-react';
+
+import { Sun, Moon, Droplets } from 'lucide-react';
+
 
 export default function ThemeSelector({ theme, setTheme, compact = false }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,6 +44,7 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
               onClick={() => { setTheme(t.name); setIsOpen(false); }}
               className={`theme-menu-item ${theme === t.name ? 'active' : ''}`}
               role="menuitem"
+
               aria-current={theme === t.name ? 'true' : undefined}
             >
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
@@ -51,6 +56,11 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
                       <Check size={14} />
                     </span>
                   )}
+
+            >
+              {t.icon}
+              <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
+
             </button>
           ))}
         </div>
@@ -100,6 +110,7 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
           font-size: 14px;
           font-weight: 500;
           border-radius: 8px;
+
           transition: background-color 0.12s ease, color 0.12s ease;
         }
         .theme-menu-item:hover { background: var(--bg-tertiary); }
@@ -138,6 +149,12 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
         [data-theme="midnight"] .theme-menu-item {
           color: rgba(255,255,255,0.9);
         }
+
+          transition: background-color 0.12s ease;
+        }
+        .theme-menu-item:hover { background: var(--bg-tertiary); }
+        .theme-menu-item.active { background: var(--accent); color: var(--text-on-primary); }
+
       `}</style>
     </div>
   );

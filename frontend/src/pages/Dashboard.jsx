@@ -19,6 +19,7 @@ function colorForId(id) {
 
 export default function Dashboard() {
   const usuario = getUsuario();
+
   const getDisplayName = (u) => {
     if (!u) return 'Usuario';
     const cand = u.nombre_completo || u.nombre || u.name || u.Username || u.username || u.correo || u.email || '';
@@ -35,6 +36,15 @@ export default function Dashboard() {
   const [form, setForm] = useState({
     titulo: '', descripcion: '', fecha_vencimiento: '',
     prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: ''
+
+  const [tareas, setTareas] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  // Elimine 'estado' del estado inicial
+  const [form, setForm] = useState({
+    titulo: '', descripcion: '', fecha_vencimiento: '',
+    prioridad: 'baja', comentario: '', sala_id: ''
+
   });
   const [editingId, setEditingId] = useState(null);
   const [stats, setStats] = useState(null);
@@ -43,6 +53,7 @@ export default function Dashboard() {
   useEffect(() => {
     fetchAll();
     if (getToken()) fetchStats();
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -50,6 +61,10 @@ export default function Dashboard() {
     logout();
     window.location.href = '/login';
   }
+
+
+  }, []);
+
 
   async function fetchAll() {
     setLoading(true);
@@ -61,7 +76,11 @@ export default function Dashboard() {
       setTareas(Array.isArray(res.data) ? res.data : res.data.results || []);
     } catch (e) {
       console.error(e);
+
       setError('Error cargando tareas: ' + (e.response?.data || e.message));
+
+      setError('Error cargando tareas: ' + (e.response?.data?.message || e.response?.data?.error || e.message));
+
     }
     setLoading(false);
   }
@@ -79,30 +98,91 @@ export default function Dashboard() {
   async function handleCreateOrUpdate(e) {
     e.preventDefault();
     setError('');
+
     try {
       const payload = { ...form };
       if (editingId) {
+
+
+    if (!form.fecha_vencimiento) {
+      setError('La fecha de vencimiento es requerida');
+      return;
+    }
+
+    try {
+      // NO inclui 'estado' en el payload al crear
+      const payload = {
+        titulo: form.titulo.trim(),
+        descripcion: form.descripcion?.trim() || '',
+        fecha_vencimiento: form.fecha_vencimiento,
+        prioridad: form.prioridad,
+        comentario: form.comentario?.trim() || '',
+      };
+
+      if (form.sala_id && form.sala_id.trim() !== '') {
+        payload.sala_id = form.sala_id.trim();
+      }
+
+      if (editingId) {
+        //   Solo al editar, inclui el estado
+        payload.estado = form.estado;
+
         await api.put(`${cfg.paths.tareas}/${editingId}`, payload);
       } else {
         await api.post(cfg.paths.tareas, payload);
       }
+
       setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' });
+
+
+      //  Reset sin 'estado'
+      setForm({
+        titulo: '',
+        descripcion: '',
+        fecha_vencimiento: '',
+        prioridad: 'baja',
+        comentario: '',
+        sala_id: ''
+      });
+
       setEditingId(null);
       await fetchAll();
       await fetchStats();
     } catch (e) {
+
       console.error(e);
       setError('Error guardando tarea: ' + (e.response?.data || e.message));
+
+      console.error('Error completo:', e);
+      const errorMsg =
+        e.response?.data?.error ||
+        e.response?.data?.message ||
+        e.message ||
+        'Error desconocido al guardar la tarea';
+      setError('Error guardando tarea: ' + errorMsg);
+
     }
   }
 
   function startEdit(t) {
     setEditingId(t.id_tarea);
+
     setForm({
       titulo: t.titulo || '', descripcion: t.descripcion || '',
       fecha_vencimiento: t.fecha_vencimiento || '',
       prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente',
       comentario: t.comentario || '', sala_id: t.sala_id || ''
+
+    //   Al editar, sí cargue el estado
+    setForm({
+      titulo: t.titulo || '',
+      descripcion: t.descripcion || '',
+      fecha_vencimiento: t.fecha_vencimiento || '',
+      prioridad: t.prioridad || 'baja',
+      estado: t.estado || 'Pendiente', //  inclui estado solo en edición
+      comentario: t.comentario || '',
+      sala_id: t.sala_id || ''
+
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -115,9 +195,17 @@ export default function Dashboard() {
       await fetchStats();
     } catch (e) {
       console.error(e);
+
       setError('Error eliminando: ' + (e.response?.data || e.message));
     }
   }
+
+
+      setError('Error eliminando: ' + (e.response?.data?.message || e.response?.data?.error || e.message));
+    }
+  }
+
+  // --- resto del código (gráficos, etc.) ---
 
   const safeStats = stats || {};
   const monthlyData = Array.isArray(safeStats.monthly) ? safeStats.monthly : [];
@@ -142,10 +230,17 @@ export default function Dashboard() {
 
   const priorityRank = { alta: 0, media: 1, baja: 2 };
   const estadoRank = { Pendiente: 0, EnProgreso: 1, EnEspera: 2, Completado: 3 };
+
   const taskBars = safeTareas.slice().sort((a,b) => {
     const ea = estadoRank[a.estado] ?? 99; const eb = estadoRank[b.estado] ?? 99;
     if (ea !== eb) return ea - eb;
     const pa = priorityRank[(a.prioridad||'baja').toLowerCase()] ?? 9; const pb = priorityRank[(b.prioridad||'baja').toLowerCase()] ?? 9;
+
+  const taskBars = safeTareas.slice().sort((a, b) => {
+    const ea = estadoRank[a.estado] ?? 99; const eb = estadoRank[b.estado] ?? 99;
+    if (ea !== eb) return ea - eb;
+    const pa = priorityRank[(a.prioridad || 'baja').toLowerCase()] ?? 9; const pb = priorityRank[(b.prioridad || 'baja').toLowerCase()] ?? 9;
+
     if (pa !== pb) return pa - pb;
     return (a.titulo || '').localeCompare(b.titulo || '');
   }).map(t => ({ id: t.id_tarea, titulo: t.titulo || ('#' + t.id_tarea), count: 1, color: taskColors[t.id_tarea] }));
@@ -156,7 +251,27 @@ export default function Dashboard() {
         <div className="dashboard-left">
           <div className="left-form card">
             <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--primary-gradient)', padding: '10px 14px', borderRadius: 8, color: '#ffffff' }}>
+
               <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {getDisplayName(usuario)}</h2>
+
+              <h2 style={{ margin: 0 }}>Bienvenido de nuevo a Synapse, {usuario?.nombre_completo || usuario?.Username || usuario?.name || 'Usuario'}</h2>
+              <button
+                onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+                }}
+                style={{
+                  backgroundColor: '#8b3c86ff',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cerrar sesión
+              </button>
+
             </div>
 
             <form onSubmit={handleCreateOrUpdate} style={{ marginTop: 12 }}>
@@ -165,13 +280,19 @@ export default function Dashboard() {
               <label>Descripción</label>
               <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
               <label>Fecha vencimiento</label>
+
               <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} />
+
+              <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} required />
+
+
               <label>Prioridad</label>
               <select value={form.prioridad} onChange={e => setForm({ ...form, prioridad: e.target.value })}>
                 <option value="baja">baja</option>
                 <option value="media">media</option>
                 <option value="alta">alta</option>
               </select>
+
               <label>Estado</label>
               <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
                 <option value="Pendiente">Pendiente</option>
@@ -179,6 +300,22 @@ export default function Dashboard() {
                 <option value="EnEspera">EnEspera</option>
                 <option value="Completado">Completado</option>
               </select>
+
+
+              {/* Solo mostramos el selector de estado si estamos editando */}
+              {editingId && (
+                <>
+                  <label>Estado</label>
+                  <select value={form.estado || 'Pendiente'} onChange={e => setForm({ ...form, estado: e.target.value })}>
+                    <option value="Pendiente">Pendiente</option>
+                    <option value="EnProgreso">EnProgreso</option>
+                    <option value="EnEspera">EnEspera</option>
+                    <option value="Completado">Completado</option>
+                  </select>
+                </>
+              )}
+
+
               <label>Comentario</label>
               <textarea value={form.comentario} onChange={e => setForm({ ...form, comentario: e.target.value })} />
               <label>Sala ID (opcional)</label>
@@ -186,7 +323,14 @@ export default function Dashboard() {
 
               <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button type="submit">{editingId ? 'Guardar cambios' : 'Crear tarea'}</button>
+
                 {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' }); }}>Cancelar</button>}
+
+                {editingId && <button type="button" onClick={() => {
+                  setEditingId(null);
+                  setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', comentario: '', sala_id: '' });
+                }}>Cancelar</button>}
+
               </div>
             </form>
 
@@ -220,9 +364,17 @@ export default function Dashboard() {
               </table>
             )}
 
+
             {error && <div className="error-message" style={{ marginTop: 12 }}>{error}</div>}
           </div>
         </div>
+
+
+            {error && <div className="error-message" style={{ marginTop: 12, color: 'crimson', whiteSpace: 'pre-wrap' }}>{error}</div>}
+          </div>
+        </div>
+
+        {/* --- Sección de estadísticas (sin cambios) --- */}
 
         <div className="dashboard-right">
           <div className="card">
@@ -239,15 +391,31 @@ export default function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
+
                         data={[{ name: 'Pendientes', value: safeStats.pendientes || 0 },{ name: 'En Progreso', value: safeStats.en_progreso || 0 },{ name: 'En Espera', value: safeStats.en_espera || 0 },{ name: 'Completadas', value: safeStats.completadas || 0 }]}
+
+                        data={[
+                          { name: 'Pendientes', value: safeStats.pendientes || 0 },
+                          { name: 'En Progreso', value: safeStats.en_progreso || 0 },
+                          { name: 'En Espera', value: safeStats.en_espera || 0 },
+                          { name: 'Completadas', value: safeStats.completadas || 0 }
+                        ]}
+
                         dataKey="value"
                         nameKey="name"
                         outerRadius={70}
                         isAnimationActive={true}
                         animationDuration={800}
                       >
+
                           {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (<Cell key={i} fill={COLORS[i % COLORS.length]} />))}
                         </Pie>
+
+                        {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (
+                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        ))}
+                      </Pie>
+
                       <Tooltip />
                     </PieChart>
                   </ResponsiveContainer>
@@ -255,7 +423,15 @@ export default function Dashboard() {
 
                 <h4>Por prioridad</h4>
                 <ResponsiveContainer width="100%" height={120}>
+
                   <BarChart data={[{ name: 'alta', value: porPrioridad.alta || 0 },{ name: 'media', value: porPrioridad.media || 0 },{ name: 'baja', value: porPrioridad.baja || 0 }]} isAnimationActive={true} animationDuration={700}>
+
+                  <BarChart data={[
+                    { name: 'alta', value: porPrioridad.alta || 0 },
+                    { name: 'media', value: porPrioridad.media || 0 },
+                    { name: 'baja', value: porPrioridad.baja || 0 }
+                  ]} isAnimationActive={true} animationDuration={700}>
+
                     <XAxis dataKey="name" />
                     <YAxis />
                     <Tooltip />
@@ -306,7 +482,11 @@ export default function Dashboard() {
                 <div className="recent-list">
                   {recientesData.map(r => (
                     <div className="recent-item" key={r.id_tarea}>
+
                       <div style={{ fontWeight:700 }}>{r.titulo}</div>
+
+                      <div style={{ fontWeight: 700 }}>{r.titulo}</div>
+
                       <div className="muted">{r.estado} • {r.prioridad} • {r.fecha_vencimiento || 'sin fecha'}</div>
                     </div>
                   ))}
@@ -326,4 +506,8 @@ export default function Dashboard() {
       </div>
     </div>
   );
+
 }
+
+}
+
