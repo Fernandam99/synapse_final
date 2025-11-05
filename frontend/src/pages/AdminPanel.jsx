@@ -9,6 +9,7 @@ export default function AdminPanel() {
   const [error, setError] = useState('');
   const [editUser, setEditUser] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [expandedUsers, setExpandedUsers] = useState(new Set());
   const navigate = useNavigate();
   const usuario = getUsuario();
 
@@ -43,6 +44,14 @@ export default function AdminPanel() {
   function handleEditClick(user) {
     setEditUser(user);
     setEditForm({ ...user });
+  }
+
+  function toggleTasks(userId) {
+    setExpandedUsers(prev => {
+      const s = new Set(prev);
+      if (s.has(userId)) s.delete(userId); else s.add(userId);
+      return s;
+    });
   }
 
   function handleEditChange(e) {
@@ -90,27 +99,48 @@ export default function AdminPanel() {
             </thead>
             <tbody>
               {usuarios.map(user => (
-                <tr key={user.id_usuario}>
-                  <td>{user.Username}</td>
-                  <td>{user.correo}</td>
-                  <td>{user.rol_id === 1 ? 'Admin' : 'Cliente'}</td>
-                  <td>{user.activo ? 'Activo' : 'Inactivo'}</td>
-                  <td>
-                    <button 
-                      onClick={() => handleDeactivateUser(user.id_usuario)}
-                      className="deactivate-btn"
-                      disabled={!user.activo}
-                    >
-                      Desactivar
-                    </button>
-                    <button 
-                      onClick={() => handleEditClick(user)}
-                      className="edit-btn"
-                    >
-                      Editar
-                    </button>
-                  </td>
-                </tr>
+                <React.Fragment key={user.id_usuario}>
+                  <tr>
+                    <td>{user.Username}</td>
+                    <td>{user.correo}</td>
+                    <td>{user.rol_id === 1 ? 'Admin' : 'Cliente'}</td>
+                    <td>{user.activo ? 'Activo' : 'Inactivo'}</td>
+                    <td>
+                      <button 
+                        onClick={() => handleDeactivateUser(user.id_usuario)}
+                        className="deactivate-btn"
+                        disabled={!user.activo}
+                      >
+                        Desactivar
+                      </button>
+                      <button onClick={() => toggleTasks(user.id_usuario)} className="edit-btn" style={{ marginLeft: 8 }}>
+                        {expandedUsers.has(user.id_usuario) ? 'Ocultar tareas' : 'Ver tareas'}
+                      </button>
+                      <button 
+                        onClick={() => handleEditClick(user)}
+                        className="edit-btn"
+                      >
+                        Editar
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedUsers.has(user.id_usuario) && (
+                    <tr>
+                      <td colSpan={5} style={{ background: '#fafafa' }}>
+                        <strong>Tareas:</strong>
+                        {user.tareas && user.tareas.length > 0 ? (
+                          <ul>
+                            {user.tareas.map(t => (
+                              <li key={t.id_tarea}>{t.titulo} - {t.estado} {t.fecha_vencimiento ? ` (vence: ${t.fecha_vencimiento})` : ''}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div>No hay tareas</div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
