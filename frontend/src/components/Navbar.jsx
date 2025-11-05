@@ -45,14 +45,27 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     return () => { try { window.removeEventListener('resize', handleResize); } catch (e) {} };
   }, [expanded]);
 
-  const navItems = [
+  // Obtener el rol del usuario actual
+  const isAdmin = user?.rol_id === 1;
+
+  // Items de navegación específicos para administradores
+  const adminNavItems = [
+    { path: '/admin', label: 'Panel Admin', icon: <User size={18} /> },
+    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+  ];
+
+  // Items de navegación para usuarios normales
+  const userNavItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
     { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-  { path: '/salas', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
+    { path: '/salas', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
   ];
+
+  // Usar los items correspondientes según el rol
+  const navItems = isAdmin ? adminNavItems : userNavItems;
 
   const handleProfileMenuMouseLeave = () => {
     setTimeout(() => setOpenProfile(false), 150); 

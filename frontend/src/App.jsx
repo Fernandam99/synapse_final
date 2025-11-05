@@ -12,6 +12,15 @@ import PrivateRoute from './components/PrivateRoute';
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
 import Loader from './components/loader';
+
+// Componente de protección para rutas de admin
+function AdminRoute({ children }) {
+  const user = getUsuario();
+  if (!user || user.rol_id !== 1) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
 // Load Navbar defensively: some environments may export it differently.
 const Navbar = React.lazy(async () => {
   const mod = await import('./components/Navbar');
@@ -128,13 +137,30 @@ export default function App(){
   <Routes>
         <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
         <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-  <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
+  {/* Rutas específicas para administradores */}
+  <Route path="/admin" element={
+    <AdminRoute>
+      <div className="container"><AdminPanel /></div>
+    </AdminRoute>
+  } />
   <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
-  <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
-  <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
-  <Route path="/" element={<div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>} />
-  <Route path="/admin" element={<AdminPanel />} />
-  <Route path="/salas" element={<div className="container"><PrivateRoute><SalaPage/></PrivateRoute></div>} />
+  
+  {/* Rutas solo para usuarios no-admin */}
+  {usuario && usuario.rol_id !== 1 && (
+    <>
+      <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
+      <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
+      <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
+      <Route path="/salas" element={<div className="container"><PrivateRoute><SalaPage/></PrivateRoute></div>} />
+    </>
+  )}
+  
+  {/* Ruta pública */}
+  <Route path="/" element={
+    usuario?.rol_id === 1 ? 
+    <Navigate to="/admin" replace /> : 
+    <div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>
+  } />
       </Routes>
       </Suspense>
       <Footer />
