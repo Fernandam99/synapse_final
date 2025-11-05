@@ -193,7 +193,7 @@ def delete_tarea(id_tarea):
 def get_estadisticas_tareas():
     try:
         usuario_id = get_jwt_identity()
-<<<<<<< Updated upstream
+
         
         # Contar tareas por estado
         stats = {
@@ -206,7 +206,7 @@ def get_estadisticas_tareas():
         
         # Tareas por prioridad
         stats['por_prioridad'] = {
-=======
+
         print(f"[GET ESTAD TAREAS] llamada para usuario={usuario_id}")
         hoy = date.today()
         primer_dia_mes = hoy.replace(day=1)
@@ -224,7 +224,7 @@ def get_estadisticas_tareas():
 
         # Por prioridad
         por_prioridad = {
->>>>>>> Stashed changes
+
             'alta': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='alta').count(),
             'media': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='media').count(),
             'baja': Tarea.query.filter_by(usuario_id=usuario_id, prioridad='baja').count()
@@ -243,11 +243,11 @@ def get_estadisticas_tareas():
             Tarea.usuario_id == usuario_id,
             Tarea.fecha_vencimiento == hoy
         ).count()
-<<<<<<< Updated upstream
+
         
         return jsonify(stats), 200
         
-=======
+
 
         # Tareas recientes (últimos 5 días, ordenadas por fecha_creacion DESC)
         hace_5_dias = hoy - timedelta(days=5)
@@ -318,7 +318,7 @@ def get_estadisticas_tareas():
             'monthly': monthly
         }), 200
 
->>>>>>> Stashed changes
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 @tarea_bp.route('/sala/<string:sala_id>', methods=['GET'])
