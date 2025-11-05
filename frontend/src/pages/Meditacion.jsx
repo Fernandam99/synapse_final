@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Droplet, Star, Play, RotateCcw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import meditacionService from '../services/meditacionService';
+import meditacionService from '../services/meditacion';
 
 export default function Meditacion() {
     const { t } = useTranslation();

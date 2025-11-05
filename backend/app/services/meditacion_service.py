@@ -42,7 +42,7 @@ class MeditacionService:
         # Crear sesión
         nueva_sesion = Sesion(
             usuario_id=usuario_id,
-            tecnica_id=tecnica_meditacion.tecnica_id,
+            id_tecnica=tecnica_meditacion.id_tecnica,
             inicio=datetime.utcnow(),
             es_grupal=False,
             estado='EnEjecucion'
@@ -134,7 +134,7 @@ class MeditacionService:
         
         sesiones = Sesion.query.filter_by(
             usuario_id=usuario_id,
-            tecnica_id=tecnica_meditacion.tecnica_id
+            id_tecnica=tecnica_meditacion.id_tecnica
         ).order_by(Sesion.inicio.desc()).limit(limite).all()
         
         historial = []

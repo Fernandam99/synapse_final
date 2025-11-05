@@ -5,9 +5,9 @@ import api from './api'
 
 export const getStats = () => api.get('/sesiones/estadisticas').then(r => r.data)
 
-export const getSessions = ({ tecnica_id = null, page = 1, per_page = 10 } = {}) => {
+export const getSessions = ({ id_tecnica = null, page = 1, per_page = 10 } = {}) => {
   const params = { page, per_page }
-  if (tecnica_id) params.tecnica_id = tecnica_id
+  if (id_tecnica) params.id_tecnica = id_tecnica
   return api.get('/sesiones', { params }).then(r => r.data)
 }
 

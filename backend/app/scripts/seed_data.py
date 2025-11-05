@@ -84,21 +84,26 @@ def insertar_datos_iniciales():
         db.session.commit()
         print("✓ Usuarios creados")
         
-        # Crear técnicas de estudio básicas
+        # Crear técnicas básicas: solo Pomodoro y Meditación
         if not Tecnica.query.first():
             tecnicas = [
-                Tecnica(nombre='Pomodoro', categoria='Gestión del tiempo', descripcion='Técnica de estudio por intervalos de 25 minutos', duracion_estimada=25),
-                Tecnica(nombre='Timeboxing', categoria='Gestión del tiempo', descripcion='Asignación estricta de tiempo a tareas', duracion_estimada=30),
-                Tecnica(nombre='Técnica Feynman', categoria='Comprensión', descripcion='Aprender explicando con tus propias palabras', duracion_estimada=40),
-                Tecnica(nombre='Mapas mentales', categoria='Organización', descripcion='Visualizar ideas y relaciones', duracion_estimada=20),
-                Tecnica(nombre='Repetición espaciada', categoria='Memorización', descripcion='Revisar contenido en intervalos crecientes', duracion_estimada=15),
-                Tecnica(nombre='Método Cornell', categoria='Toma de notas', descripcion='Técnica estructurada para tomar apuntes', duracion_estimada=45),
-                Tecnica(nombre='Lectura activa', categoria='Comprensión', descripcion='Leer con objetivos claros y preguntas', duracion_estimada=30),
-                Tecnica(nombre='Flashcards', categoria='Memorización', descripcion='Uso de tarjetas de preguntas y respuestas', duracion_estimada=10)
+                Tecnica(
+                    nombre='Pomodoro',
+                categoria='productividad',
+                descripcion='Técnica de estudio por intervalos de 25 minutos',
+                duracion_estimada=25
+                ),
+                Tecnica(
+                    nombre='Meditación',
+                    categoria='bienestar',
+                    descripcion='Sesiones guiadas de atención plena y respiración',
+                    duracion_estimada=10
+                )
             ]
-            for tecnica in tecnicas:
-                db.session.add(tecnica)
-            print("✓ Técnicas de estudio creadas")
+        for tecnica in tecnicas:
+            db.session.add(tecnica)
+        db.session.commit()
+        print("✓ Técnicas esenciales creadas: Pomodoro y Meditación")
         
         # Crear recompensas básicas
         if not Recompensa.query.first():
