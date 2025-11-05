@@ -33,17 +33,19 @@ def get_salas():
 def get_salas_publicas():
     try:
         # Incluir información básica del creador (username, correo) pero no datos sensibles
-        salas = db.session.query(Sala, Usuario).join(Usuario, Sala.creador_id == Usuario.id_usuario).filter(Sala.es_privada == False).all()
+        usuario_id = get_jwt_identity()
+        salas = db.session.query(Sala, Usuario).join(Usuario, Sala.creador_id == Usuario.id_usuario).all()
         out = []
         for sala, usuario in salas:
             s = sala.to_dict()
+            # Sólo el creador puede ver el código de acceso
+            if sala.creador_id != usuario_id:
+                s.pop('codigo_acceso', None)
             s['creador'] = {
                 'id_usuario': usuario.id_usuario,
                 'username': getattr(usuario, 'username', None),
                 'correo': usuario.correo
             }
-            # ocultar descripcion para mostrar solo nombre en la lista pública si se desea
-            # dejamos la descripcion disponible pero el frontend puede elegir mostrar solo nombre
             out.append(s)
         return jsonify(out), 200
     except Exception as e:

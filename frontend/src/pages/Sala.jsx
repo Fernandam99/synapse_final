@@ -44,7 +44,14 @@ export default function SalaPage() {
       const created = await createSala(payload);
       // reload lists
       await loadData();
-      alert('Sala creada');
+      // Mostrar código de acceso solo si el creador lo recibe (salas privadas)
+      if (created.codigo_acceso) {
+        // Mostrar en alerta y copiar al portapapeles
+        try { await navigator.clipboard.writeText(created.codigo_acceso); } catch (e) {}
+        alert(`Sala creada. ID: ${created.id_sala}\nCódigo de acceso (copiado al portapapeles): ${created.codigo_acceso}`);
+      } else {
+        alert('Sala creada');
+      }
       setForm({ nombre: '', descripcion: '', es_privada: false, max_participantes: 0 });
     } catch (err) {
       setError(err.response?.data?.error || String(err));
