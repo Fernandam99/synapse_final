@@ -20,6 +20,12 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
+    # Para facilitar la generación de migraciones en desarrollo local sin
+    # depender de la configuración del servidor MySQL (p. ej. plugins GSSAPI),
+    # por defecto en development usamos una base SQLite local que no requiere
+    # autenticación especial. Si quieres usar MySQL en dev, define la
+    # variable de entorno DEV_DATABASE_URL con la URI correspondiente.
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or 'sqlite:///./dev_migrations.db'
 
 class ProductionConfig(Config):
     DEBUG = False

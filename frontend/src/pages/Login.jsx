@@ -39,12 +39,37 @@ export default function Login({ onSuccess, onSwitchMode }) {
       else nav('/dashboard');
     } catch (error) {
       console.error(error);
+
+      // Normalize backend messages: map 'Cuenta desactivada' or similar to 'Cuenta no existe'
+      const serverMsg = error.response?.data?.error || error.response?.data || error.message || '';
+      const normalized = typeof serverMsg === 'string' && /desactiv/i.test(serverMsg)
+        ? 'Esta cuenta no existe, registate'
+        : serverMsg;
+      setErr(normalized);
+
       setErr(error.response?.data?.error || error.response?.data || error.message);
+
     }
   };
 
   return (
    <div style={{ fontFamily: 'Inter, system-ui, Arial' }}> 
+
+
+  <div style={{ textAlign: 'center', marginBottom: 24 }}>
+    <h2 className="auth-title" style={{ margin: 0 }}>{t('login')}</h2>
+  </div>
+
+      <button className="google-btn" type="button">
+        <span className="google-icon">
+          {/* Inline simplified Google-style mark to avoid missing asset */}
+          <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.9 0 6.6 1.7 8.1 3.1l6-6C34.6 3 29.8 1 24 1 14.8 1 6.9 6.8 3.2 14.9l7.4 5.7C12.6 15.1 17.7 9.5 24 9.5z"/>
+            <path fill="#34A853" d="M46.5 24c0-1.6-.1-2.8-.4-4H24v8.1h12.6c-.5 3-2.7 7.3-8.6 9.6 0 0 13.5-4.2 18.9-13.7C46.6 26.9 46.5 25.5 46.5 24z"/>
+            <path fill="#FBBC05" d="M10.6 29.9C9.4 27.5 8.8 25 8.8 23s.6-4.5 1.8-6.9L3.2 10.9C1.2 14.5 0 18.7 0 24s1.2 9.5 3.2 13.1l7.4-5.7z"/>
+            <path fill="#4285F4" d="M24 46.9c6.1 0 11.2-2 14.9-5.4l-7.3-5.9c-2 1.4-5.1 2.8-7.6 2.8-6.4 0-11.8-4.5-13.7-10.6l-7.4 5.7C6.9 41.2 14.8 46.9 24 46.9z"/>
+          </svg>
+        </span>
 
       <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>{t('login')}</h2>
@@ -52,6 +77,7 @@ export default function Login({ onSuccess, onSwitchMode }) {
 
       <button className="google-btn" type="button">
         <span className="google-icon"><img src="/static/IMG/google.svg" alt={t('google_alt', 'Google')} /></span>
+
         <span>{t('continue_with_google', 'Continuar con Google')}</span>
       </button>
 
@@ -92,4 +118,8 @@ export default function Login({ onSuccess, onSwitchMode }) {
         `}</style>
     </div>
   );
+
 }
+
+}
+

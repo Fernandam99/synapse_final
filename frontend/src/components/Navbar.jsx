@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+
+import { Home, Target, CheckCircle, Star, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+
 import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
@@ -12,6 +16,22 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const { t, i18n } = useTranslation();
+
+  // Display name helper: prefer full name fields, fall back to username or email prefix
+  const getDisplayName = (u) => {
+    if (!u) return 'Usuario';
+    const cand = u.nombre_completo || u.nombre || u.name || u.Username || u.username || u.username || u.correo || u.email || '';
+    if (!cand) return 'Usuario';
+    // If it's an email, use the part before @ and prettify
+    if (cand.includes('@')) {
+      const before = cand.split('@')[0];
+      return before.split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' ');
+    }
+    // Otherwise, capitalize first letter
+    return cand.charAt(0).toUpperCase() + cand.slice(1);
+  };
+
+
   // Por defecto colapsado; se expandirá solo cuando el usuario pase el mouse
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
@@ -48,10 +68,17 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   const navItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
+
+    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
+    { path: '/recompensas', label: t('rewards', 'Recompensas'), icon: <Star size={18} /> },
+    { path: '/tareas', label: t('tasks', 'Tareas'), icon: <CheckCircle size={18} /> },
+    // Se removieron los enlaces a 'sesion-grupal' y 'perfil' del navbar según solicitud
+
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
     { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
     { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+
   ];
 
   const handleProfileMenuMouseLeave = () => {
@@ -161,8 +188,13 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-haspopup="true" 
                     style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
                 >
+
+                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{getDisplayName(user).charAt(0).toUpperCase()}</div>
+                  <span className="btn-label" style={{ textAlign: 'left' }}>{getDisplayName(user)}</span>
+
                   <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
                   <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
+
                 </button>
 
                 {openProfile && (
@@ -184,7 +216,11 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                       onMouseLeave={handleProfileMenuMouseLeave}
                   >
                     {/* Secciones de Perfil y Configuración */}
+
+                    {/* Enlace a perfil eliminado; dejamos configuración y cerrar sesión */}
+
                     <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('profile')}</Link>
+
                     <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
                     <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
                   </div>
@@ -247,10 +283,14 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               </>
             ) : (
               <>
+
+                {/* Enlace a perfil eliminado del menú móvil */}
+
                 <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
                   <User size={16} />
                   <span>{t('my_account')}</span>
                 </Link>
+
                 <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
                   <User size={16} />
                   <span>{t('logout')}</span>
