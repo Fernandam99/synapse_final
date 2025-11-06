@@ -68,14 +68,16 @@ export default function Dashboard() {
             } else {
                 await api.post(cfg.paths.tareas, payload);
             }
-            setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' });
+            setForm({
+                titulo: '', descripcion: '', fecha_vencimiento: '',
+                prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: ''
+            });
             setEditingId(null);
             await fetchAll();
             await fetchStats();
         } catch (e) {
-            console.error('Error completo:', e);
-            const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || 'Error desconocido al guardar la tarea';
-            setError('Error guardando tarea: ' + errorMsg);
+            console.error(e);
+            setError('Error guardando tarea: ' + (e.response?.data || e.message));
         }
     }
 
@@ -272,10 +274,9 @@ export default function Dashboard() {
                         </div>
                     </div>
                 ) : (
-                    <div>Cargando estadísticas...</div>
+                    <div>Cargando...</div>
                 )}
             </div>
         </div>
     );
 }
-// Pruba 
