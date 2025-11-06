@@ -14,11 +14,16 @@ def create_admin():
             print(f" Ya existe un administrador: {admin.username} ({admin.correo})")
             return
 
-        # Asegurarse de que el rol 'administrador' exista
+        # Asegurarse de que exista un rol de administrador. Soportar nombres comunes.
         rol_admin = Rol.query.filter_by(nombre='administrador').first()
         if not rol_admin:
-            print(" El rol 'administrador' no existe. Ejecuta primero: python -m app.scripts.seed_roles")
-            return
+            rol_admin = Rol.query.filter_by(nombre='admin').first()
+        # Si aún no existe, crearlo con nombre 'admin'
+        if not rol_admin:
+            rol_admin = Rol(nombre='admin')
+            db.session.add(rol_admin)
+            db.session.commit()
+            print(" Rol 'admin' creado automáticamente.")
 
         # Crear usuario administrador
         admin_user = Usuario(
