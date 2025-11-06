@@ -55,7 +55,7 @@ export default function Login({ onSuccess, onSwitchMode }) {
   return (
    <div className="auth-panel"> 
 
-<<<<<<< HEAD
+
       <div className="auth-header">
           <h2 className="auth-title">Iniciar sesión</h2>
       </div>
@@ -63,7 +63,7 @@ export default function Login({ onSuccess, onSwitchMode }) {
       <button className="google-btn" type="button">
         <span className="google-icon"><img src="/static/IMG/google.svg" alt="Google" /></span>
         <span>Continuar con Google</span>
-=======
+
 
   <div style={{ textAlign: 'center', marginBottom: 24 }}>
     <h2 className="auth-title" style={{ margin: 0 }}>{t('login')}</h2>
@@ -88,7 +88,7 @@ export default function Login({ onSuccess, onSwitchMode }) {
         <span className="google-icon"><img src="/static/IMG/google.svg" alt={t('google_alt', 'Google')} /></span>
 
         <span>{t('continue_with_google', 'Continuar con Google')}</span>
->>>>>>> main
+
       </button>
 
       <div className="or-sep">o con tu correo</div>
@@ -124,6 +124,3 @@ export default function Login({ onSuccess, onSwitchMode }) {
   );
 
 }
-
-}
-

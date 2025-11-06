@@ -28,19 +28,39 @@ export default function Footer() {
               Transformando el aprendizaje a través de la tecnología consciente y el desarrollo humano integral.
             </p>
             <div className="footer-social flex space-x-4">
-              <a href="https://www.facebook.com/tu_pagina" target="_blank" rel="noopener noreferrer" className="social-btn">
-                <FaFacebookF />
-              </a>
-              <a href="https://twitter.com/tu_usuario" target="_blank" rel="noopener noreferrer" className="social-btn">
-                <FaTwitter />
-              </a>
-              <a href="https://www.linkedin.com/in/tu_perfil" target="_blank" rel="noopener noreferrer" className="social-btn">
-                <FaLinkedinIn />
-              </a>
-              <a href="https://www.instagram.com/tu_usuario" target="_blank" rel="noopener noreferrer" className="social-btn">
-                <FaInstagram />
-              </a>
-            </div>
+           <a
+    href="https://www.facebook.com/tu_pagina"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:bg-white hover:text-[#111827] transform hover:-translate-y-1 hover:scale-110 transition"
+  >
+    <FaFacebookF />
+  </a>
+  <a
+    href="https://twitter.com/tu_usuario"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:bg-white hover:text-[#111827] transform hover:-translate-y-1 hover:scale-110 transition"
+  >
+    <FaTwitter />
+  </a>
+  <a
+    href="https://www.linkedin.com/in/tu_perfil"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:bg-white hover:text-[#111827] transform hover:-translate-y-1 hover:scale-110 transition"
+  >
+    <FaLinkedinIn />
+  </a>
+  <a
+    href="https://www.instagram.com/tu_usuario"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="w-9 h-9 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:bg-white hover:text-[#111827] transform hover:-translate-y-1 hover:scale-110 transition"
+  >
+    <FaInstagram />
+  </a>
+</div>
           </div>
 
 
@@ -66,7 +86,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/meditacion" className="text-gray-400 hover:text-white hover:translate-x-1 transition">Meditación</Link>
+                <Link 
+                  to="/meditacion" 
+                  className="text-gray-400 hover:text-white hover:translate-x-1 transition"
+                >
+                  Meditación
+                </Link>
               </li>
             </ul>
           </div>
@@ -101,9 +126,9 @@ export default function Footer() {
 
 
         {/* Parte inferior */}
-        <div className="footer-bottom pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
+          <div className="footer-bottom pt-6 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
           <p>&copy; 2025 Synapse. Todos los derechos reservados.</p>
-          <div className="footer-legal flex space-x-6 mt-4 md:mt-0">
+          <div className="footer-legal flex items-center space-x-6 mt-4 md:mt-0">
             <a href="#" className="hover:text-white transition">Privacidad</a>
             <a href="#" className="hover:text-white transition">Cookies</a>
           </div>

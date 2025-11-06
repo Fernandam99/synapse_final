@@ -34,8 +34,8 @@ export default function HomePage({ onAuthClick }) {
       desc: '',
       items: []
     }
-<<<<<<< HEAD
-=======
+
+
 
     // Do not perform an intrusive /home probe (404). Only attempt to load stats if authenticated.
     loadStats();
@@ -62,7 +62,7 @@ export default function HomePage({ onAuthClick }) {
     { id: 5, key: 'tech_group', ruta: '/sesion-grupal', Icon: Users, color: '#3b82f6' },
     { id: 6, key: 'tech_profile', ruta: '/perfil', Icon: User, color: '#8b5cf6' }
 
->>>>>>> main
+
   ];
 
   const testimonials = [
@@ -174,7 +174,7 @@ export default function HomePage({ onAuthClick }) {
           {/* Left side - Text content */}
           <div>
 
-<<<<<<< HEAD
+
               <h1 style={{
                 fontSize: 'clamp(2.5rem, 5vw, 4rem)',
                 fontWeight: '800',
@@ -183,7 +183,7 @@ export default function HomePage({ onAuthClick }) {
                 color: 'var(--text-primary)'
               }}>
                 Potencia tu mente
-=======
+
         [data-theme='light'] .section-title {
           color: black !important;
           visibility: visible;
@@ -282,7 +282,7 @@ export default function HomePage({ onAuthClick }) {
               <h1>
                 {t('hero_prefix')}{' '}
                 <span className="hero-highlight">{t('hero_highlight')}</span>
->>>>>>> main
+
               </h1>
 
               <p style={{
@@ -494,7 +494,7 @@ export default function HomePage({ onAuthClick }) {
             </p>
           </div>
 
-<<<<<<< HEAD
+
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
@@ -536,7 +536,7 @@ export default function HomePage({ onAuthClick }) {
                   <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.95rem' }}>
                     "{testimonial.text}"
                   </p>
-=======
+
     <div
       style={{
         display: 'grid',
@@ -680,7 +680,7 @@ export default function HomePage({ onAuthClick }) {
               <p className="tech-desc">{t(`${tecnica.key}.desc`)}</p>
               <button className="tech-cta" onClick={() => handleTecnicaClick(tecnica.ruta)}>{t('go_to', 'Go to')} {t(`${tecnica.key}.name`)}</button>
 
->>>>>>> main
+
                 </div>
               );
             })}

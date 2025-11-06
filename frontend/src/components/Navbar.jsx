@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-<<<<<<< HEAD
 import { Home, LayoutDashboard, Brain, Clock, Users, Calendar, Star, Shield, User, LogIn, UserPlus, Menu, X } from "lucide-react";
-=======
+
 
 import { Home, Target, CheckCircle, Star, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 
 import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 
->>>>>>> main
+
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
@@ -18,9 +17,9 @@ import LanguageSelector from './LanguageSelector';
 export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
-<<<<<<< HEAD
+
   // Navbar uses fixed Spanish labels now (app is Spanish-only)
-=======
+
   const { t, i18n } = useTranslation();
 
   // Display name helper: prefer full name fields, fall back to username or email prefix
@@ -38,7 +37,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   };
 
 
->>>>>>> main
+
   // Por defecto colapsado; se expandirá solo cuando el usuario pase el mouse
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
@@ -83,7 +82,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   }, [expanded]);
 
   const navItems = [
-<<<<<<< HEAD
+
     { path: '/', label: 'Inicio', icon: <Home size={18} /> },
     { path: '/pomodoro', label: 'Pomodoro', icon: <Clock size={18} />, requiresAuth: true },
     { path: '/meditacion', label: 'Meditación', icon: <Brain size={18} />, requiresAuth: true },
@@ -94,7 +93,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   ].filter(item => !item.adminOnly || (user?.rol_id === 1)); // Mostrar panel de admin solo para administradores
 
   const closeTimeoutRef = useRef(null);
-=======
+
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
 
@@ -109,7 +108,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
 
   ];
->>>>>>> main
+
 
   const handleProfileMenuMouseLeave = () => {
     // Usar el timeout compartido para cierre (coherente con el avatar)
@@ -255,10 +254,10 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-expanded={openProfile} 
                     aria-haspopup="true"
                 >
-<<<<<<< HEAD
+
                   <div className="profile-avatar">{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
                   <span className="profile-name">{user?.Username || user?.nombre || user?.correo}</span>
-=======
+
 
                   <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{getDisplayName(user).charAt(0).toUpperCase()}</div>
                   <span className="btn-label" style={{ textAlign: 'left' }}>{getDisplayName(user)}</span>
@@ -266,7 +265,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                   <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
                   <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
 
->>>>>>> main
+
                 </button>
 
                 {openProfile && (
@@ -284,11 +283,11 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                       onMouseLeave={handleProfileMenuMouseLeave}
                   >
                     {/* Secciones de Perfil y Configuración */}
-<<<<<<< HEAD
+
                     <Link to="/perfil" onClick={closeProfileMenu} className="profile-menu-link">Perfil</Link>
                     <Link to="/config" onClick={closeProfileMenu} className="profile-menu-link">Configuración</Link>
                     <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} className="profile-menu-logout">Cerrar sesión</button>
-=======
+
 
                     {/* Enlace a perfil eliminado; dejamos configuración y cerrar sesión */}
 
@@ -296,7 +295,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
                     <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
                     <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
->>>>>>> main
+
                   </div>
                 )}
               </div>
@@ -328,9 +327,9 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                 <button className="mobile-close" aria-label={'Cerrar menú'} onClick={() => setIsMenuOpen(false)}>
                   <X size={18} />
                 </button>
-<<<<<<< HEAD
+
               </div>
-=======
+
                 <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
                   <UserPlus size={16} />
                   <span>{t('register')}</span>
@@ -353,7 +352,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               </>
             )}
           </div>
->>>>>>> main
+
 
               <nav className="mobile-nav">
                 <ul>
