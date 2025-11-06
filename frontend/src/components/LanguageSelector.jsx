@@ -1,9 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-
 import { Globe, Check } from 'lucide-react';
-
-import { Globe } from 'lucide-react';
-
 import i18n from '../i18n';
 
 export default function LanguageSelector({ currentLng, compact = false }) {
@@ -46,7 +42,6 @@ export default function LanguageSelector({ currentLng, compact = false }) {
       {isOpen && (
         <div className="theme-menu" role="menu" style={compact ? { left: '100%', bottom: '0', transform: 'translateX(8px) translateY(-8px)' } : undefined}>
           {languages.map(l => (
-
             <button
               key={l.code}
               onClick={() => changeLanguage(l.code)}
@@ -60,10 +55,6 @@ export default function LanguageSelector({ currentLng, compact = false }) {
                   <Check size={14} />
                 </span>
               )}
-
-            <button key={l.code} onClick={() => changeLanguage(l.code)} className={`theme-menu-item ${i18n.language === l.code ? 'active' : ''}`} role="menuitem">
-              <span>{l.label}</span>
-
             </button>
           ))}
         </div>

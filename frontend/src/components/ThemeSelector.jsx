@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-import { Sun, Moon, Check } from 'lucide-react';
-
-import { Sun, Moon, Droplets } from 'lucide-react';
+import { Sun, Moon, Check, Droplets } from 'lucide-react';
 
 
 export default function ThemeSelector({ theme, setTheme, compact = false }) {
@@ -44,23 +42,17 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
               onClick={() => { setTheme(t.name); setIsOpen(false); }}
               className={`theme-menu-item ${theme === t.name ? 'active' : ''}`}
               role="menuitem"
-
               aria-current={theme === t.name ? 'true' : undefined}
             >
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                    {t.icon}
-                    <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
-                  </div>
-                  {theme === t.name && (
-                    <span className="theme-active-indicator" aria-hidden>
-                      <Check size={14} />
-                    </span>
-                  )}
-
-            >
-              {t.icon}
-              <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
-
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                {t.icon}
+                <span style={{ textTransform: 'capitalize' }}>{t.name}</span>
+              </div>
+              {theme === t.name && (
+                <span className="theme-active-indicator" aria-hidden>
+                  <Check size={14} />
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -150,8 +142,7 @@ export default function ThemeSelector({ theme, setTheme, compact = false }) {
           color: rgba(255,255,255,0.9);
         }
 
-          transition: background-color 0.12s ease;
-        }
+        
         .theme-menu-item:hover { background: var(--bg-tertiary); }
         .theme-menu-item.active { background: var(--accent); color: var(--text-on-primary); }
 

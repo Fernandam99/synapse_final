@@ -3,7 +3,6 @@ import { Calendar, Clock, Droplet, Star, Play, RotateCcw, TrendingUp, BarChart3 
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import './styles/Concentracion.css';
 import api from '../services/api';
-import { useTranslation } from 'react-i18next';
 
 const ConcentrationApp = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -118,15 +117,15 @@ const ConcentrationApp = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const { t } = useTranslation();
+  
 
   return (
     <div className="concentration-app">
       <div className="container">
         {/* Header */}
         <div className="header">
-          <h1 className="header-title">{t('concentration')}</h1>
-          <p className="header-subtitle">{t('concentration_subtitle', 'Fortalece tu capacidad de atención con técnicas científicamente probadas')}</p>
+          <h1 className="header-title">Concentración</h1>
+          <p className="header-subtitle">Fortalece tu capacidad de atención con técnicas científicamente probadas</p>
         </div>
 
         {/* Stats Cards */}
@@ -134,7 +133,7 @@ const ConcentrationApp = () => {
             <div className="stat-card">
             <div className="stat-icon purple"><Clock /></div>
             <div className="stat-value">{stats.weekMinutes}min</div>
-            <div className="stat-label">{t('this_week', 'Esta semana')}</div>
+            <div className="stat-label">Esta semana</div>
           </div>
           <div className="stat-card">
             <div className="stat-icon pink"><Calendar /></div>
@@ -154,10 +153,10 @@ const ConcentrationApp = () => {
         </div>
 
         <div className="tabs-container">
-          <div className="tabs-header">
-            <button className={`tab-button ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>{t('session_active', 'Sesión Activa')}</button>
-            <button className={`tab-button ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>{t('my_progress', 'Mi Progreso')}</button>
-            <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>{t('history', 'Historial')}</button>
+            <div className="tabs-header">
+            <button className={`tab-button ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>Sesión Activa</button>
+            <button className={`tab-button ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>Mi Progreso</button>
+            <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>Historial</button>
           </div>
 
           <div className="tabs-content">
@@ -168,7 +167,7 @@ const ConcentrationApp = () => {
 
                 <div className={`timer-circle ${isRunning ? 'active' : ''}`}>
                   <div className="timer-time">{formatTime(timer)}</div>
-                  <div className="timer-label">{t('concentration')}</div>
+                  <div className="timer-label">Concentración</div>
                   <div className="timer-session">Sesión 1</div>
                 </div>
 
@@ -184,8 +183,8 @@ const ConcentrationApp = () => {
                 </div>
 
                 <div className="button-group">
-                    <button onClick={startTimer} disabled={isRunning} className="button button-primary"><Play /> {t('start', 'Iniciar')}</button>
-                  <button onClick={resetTimer} className="button button-secondary"><RotateCcw /> {t('reset', 'Reiniciar')}</button>
+                    <button onClick={startTimer} disabled={isRunning} className="button button-primary"><Play /> Iniciar</button>
+                  <button onClick={resetTimer} className="button button-secondary"><RotateCcw /> Reiniciar</button>
                 </div>
               </div>
             )}
