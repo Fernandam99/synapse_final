@@ -1,14 +1,30 @@
 // Este archivo define la barra de navegación, gestionando enlaces, temas y autenticación.
 
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
 import { useTranslation } from 'react-i18next';
 
+import { getToken, getUsuario, logout as clearAuthStorage } from '../services/auth';
+
+// Helper to decode JWT payload safely (no external deps)
+function decodeJwt(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const payload = parts[1];
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    return JSON.parse(decodeURIComponent(escape(json)));
+  } catch (e) {
+    return null;
+  }
+}
+
 export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme }) {
+  const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
   const { t, i18n } = useTranslation();
@@ -16,6 +32,37 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
+
+  // Computed user state derived from prop, localStorage or token.
+  const [computedUser, setComputedUser] = useState(() => {
+    try {
+      return user || getUsuario() || null;
+    } catch (e) { return user || null; }
+  });
+
+  // On mount, ensure computedUser is accurate by checking token if needed
+  useEffect(() => {
+    if (!computedUser) {
+      try {
+        const token = getToken();
+        if (token) {
+          const payload = decodeJwt(token);
+          if (payload) {
+            // Expect payload to contain role or a claim we can use; fall back to stored usuario
+            const fromStorage = getUsuario();
+            const maybeRole = payload.rol_id || payload.role || payload.role_id || (fromStorage && fromStorage.rol_id);
+            setComputedUser(fromStorage || (maybeRole ? { rol_id: maybeRole } : null));
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+    // if prop user changed, keep in sync
+    if (user && user !== computedUser) setComputedUser(user);
+  }, [user]);
+
+  // Convenience boolean
+  const isAdmin = computedUser?.rol_id === 1;
 
   // Mantiene una clase global en <body> para facilitar reglas CSS que dependan
   // del estado de la barra lateral (evita selectors frágiles entre hermanos).
@@ -45,26 +92,21 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     return () => { try { window.removeEventListener('resize', handleResize); } catch (e) {} };
   }, [expanded]);
 
-  // Obtener el rol del usuario actual
-  const isAdmin = user?.rol_id === 1;
-
-  // Items de navegación específicos para administradores
+  // Items de navegación específicos para administradores (solo opciones relevantes)
   const adminNavItems = [
-    { path: '/admin', label: 'Panel Admin', icon: <User size={18} /> },
-    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+    { path: '/admin', label: 'Panel de Administrador', icon: <User size={18} /> },
+    // "Usuarios" se apunta al panel principal con un ancla — se muestra aunque no exista ruta separada
+    { path: '/admin#usuarios', label: 'Usuarios', icon: <User size={18} /> },
   ];
 
-  // Items de navegación para usuarios normales
+  // Items de navegación para usuarios normales (no deberían mostrarse a admin)
   const userNavItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
-    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/salas', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
   ];
 
-  // Usar los items correspondientes según el rol
+  // Seleccionar items: si es admin usamos solo adminNavItems, si no admin mostramos items normales
   const navItems = isAdmin ? adminNavItems : userNavItems;
 
   const handleProfileMenuMouseLeave = () => {
@@ -75,6 +117,16 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     setOpenProfile(false);
     setIsMenuOpen(false); 
   }
+
+  // Seguridad: Si el usuario intenta acceder a rutas de admin y no es admin, redirigimos.
+  useEffect(() => {
+    try {
+      if (location.pathname.startsWith('/admin') && !isAdmin) {
+        // Preferir dashboard para clientes, si no existe navegar a '/'
+        navigate('/dashboard', { replace: true });
+      }
+    } catch (e) {}
+  }, [location.pathname, isAdmin, navigate]);
   
   // Lógica de tema para el menú
   const isDarkOrMidnight = theme === 'dark' || theme === 'midnight';
@@ -174,8 +226,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-haspopup="true" 
                     style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
                 >
-                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
-                  <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
+                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(computedUser?.Username || computedUser?.nombre || computedUser?.correo || 'U').charAt(0).toUpperCase()}</div>
+                  <span className="btn-label" style={{ textAlign: 'left' }}>{computedUser?.Username || computedUser?.nombre || computedUser?.correo}</span>
                 </button>
 
                 {openProfile && (
@@ -199,7 +251,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     {/* Secciones de Perfil y Configuración */}
                     <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('profile')}</Link>
                     <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
-                    <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
+                    <button onClick={() => { closeProfileMenu(); if (onLogout) onLogout(); else { try { clearAuthStorage(); navigate('/', { replace: true }); } catch(e){} } }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
                   </div>
                 )}
               </div>
