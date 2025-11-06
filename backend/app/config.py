@@ -5,7 +5,7 @@ class Config:
     # Configuración de base de datos MariaDB
     # Cambiado por defecto a user=root password=root puerto 3306 (según solicitud)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'mysql+pymysql://root:root@localhost:3306/synapse_db'
+        'mysql+pymysql://root:root@localhost:3307/synapse_db'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
