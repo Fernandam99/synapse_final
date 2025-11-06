@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 import os
 from dotenv import load_dotenv
 from flask import jsonify
+from sqlalchemy import text
 
 # Cargar variables de entorno desde .env
 load_dotenv()
@@ -34,8 +35,8 @@ def index():
 @app.route('/health')
 def health_check():
     try:
-        # Verificar conexión a la base de datos
-        db.session.execute('SELECT 1')
+        # Verificar conexión a la base de datos. Use text() to satisfy SQLAlchemy 1.4+.
+        db.session.execute(text('SELECT 1'))
         return jsonify({'status': 'healthy', 'database': 'connected'}), 200
     except Exception as e:
         return jsonify({'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}), 500

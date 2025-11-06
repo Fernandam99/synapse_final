@@ -2,6 +2,11 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..models import db, Usuario, Rol
+from ..models.tarea import Tarea
+from ..models.sesion import Sesion
+from ..models.usuario_sala import UsuarioSala
+from ..models.recompensa_usuario import RecompensaUsuario
+from ..models.progreso import Progreso
 from ..utils.validators import validate_email, validate_password
 from datetime import datetime
 
@@ -27,12 +32,42 @@ def register():
             return jsonify({'error': password_msg}), 400
         
         # Verificar si el email ya existe
-        if Usuario.query.filter_by(correo=data['correo']).first():
-            return jsonify({'error': 'El email ya está registrado'}), 400
+        existing_email_user = Usuario.query.filter_by(correo=data['correo']).first()
+        if existing_email_user:
+            # Si la cuenta existe y está activa, impedimos el registro
+            if existing_email_user.activo:
+                return jsonify({'error': 'El email ya está registrado'}), 400
+            # Si la cuenta existe pero está desactivada (soft-deleted), intentamos limpiar todos los datos asociados
+            try:
+                # Borrar datos dependientes del usuario para evitar problemas de FK
+                db.session.query(Tarea).filter(Tarea.usuario_id == existing_email_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(Sesion).filter(Sesion.usuario_id == existing_email_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(UsuarioSala).filter(UsuarioSala.id_usuario == existing_email_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(RecompensaUsuario).filter(RecompensaUsuario.id_usuario == existing_email_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(Progreso).filter(Progreso.usuario_id == existing_email_user.id_usuario).delete(synchronize_session=False)
+                # Finalmente eliminar el registro de usuario antiguo
+                db.session.delete(existing_email_user)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'error': f'Error al limpiar cuenta previa: {str(e)}'}), 500
 
         # Verificar si el username ya existe
-        if Usuario.query.filter_by(username=data['username']).first():
-            return jsonify({'error': 'El username ya está registrado'}), 400
+        existing_username_user = Usuario.query.filter_by(username=data['username']).first()
+        if existing_username_user:
+            if existing_username_user.activo:
+                return jsonify({'error': 'El username ya está registrado'}), 400
+            try:
+                db.session.query(Tarea).filter(Tarea.usuario_id == existing_username_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(Sesion).filter(Sesion.usuario_id == existing_username_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(UsuarioSala).filter(UsuarioSala.id_usuario == existing_username_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(RecompensaUsuario).filter(RecompensaUsuario.id_usuario == existing_username_user.id_usuario).delete(synchronize_session=False)
+                db.session.query(Progreso).filter(Progreso.usuario_id == existing_username_user.id_usuario).delete(synchronize_session=False)
+                db.session.delete(existing_username_user)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'error': f'Error al limpiar cuenta previa: {str(e)}'}), 500
 
         # Obtener rol por defecto (usuario)
         rol_usuario = Rol.query.filter_by(nombre='usuario').first()
@@ -71,12 +106,17 @@ def login():
         
         # Buscar usuario
         usuario = Usuario.query.filter_by(correo=data['correo']).first()
-        
-        if not usuario or not check_password_hash(usuario.password, data['password']):
-            return jsonify({'error': 'Credenciales inválidas'}), 401
-        
+
+        # Si el usuario no existe o está desactivado, informamos que la cuenta no existe
+        if not usuario:
+            return jsonify({'error': 'Esta Cuenta no existe, registrate'}), 404
+
         if not usuario.activo:
-            return jsonify({'error': 'Cuenta desactivada'}), 401
+            return jsonify({'error': 'sta Cuenta no existe, registrate'}), 404
+
+        # Verificamos la contraseña
+        if not check_password_hash(usuario.password, data['password']):
+            return jsonify({'error': 'Credenciales inválidas'}), 401
         
         # Actualizar último acceso
         usuario.ultimo_acceso = datetime.utcnow()

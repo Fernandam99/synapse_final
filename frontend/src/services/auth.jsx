@@ -1,3 +1,8 @@
+
+// Guarda el token de acceso en el localStorage
+export function saveToken(token) {
+  localStorage.setItem('synapse_token', token);
+
 // frontend/src/services/auth.jsx
 import api from './api';
 import config from './config';
@@ -6,6 +11,7 @@ import config from './config';
 export function saveToken(token) {
   localStorage.setItem('synapse_token', token);
   api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
 }
 
 // Obtiene el token de acceso desde el localStorage
@@ -21,8 +27,12 @@ export function saveUsuario(u) {
 // Obtiene los datos del usuario desde el localStorage
 export function getUsuario() {
   try {
+
+    return JSON.parse(localStorage.getItem('synapse_usuario') || 'null');
+
     const raw = localStorage.getItem('synapse_usuario');
     return raw ? JSON.parse(raw) : null;
+
   } catch {
     return null;
   }
@@ -32,6 +42,12 @@ export function getUsuario() {
 export function logout() {
   localStorage.removeItem('synapse_token');
   localStorage.removeItem('synapse_usuario');
+
+  // Redirect to public Home after logout
+  window.location.href = '/';
+}
+
   delete api.defaults.headers.common['Authorization'];
   window.location.href = '/';
 }
+

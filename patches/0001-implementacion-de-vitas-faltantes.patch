@@ -1,0 +1,2956 @@
+From dc3159c820fe82c051b0a0321fd49e8f0cdb8545 Mon Sep 17 00:00:00 2001
+From: Fernandam99 <mm43651@gmail.com>
+Date: Thu, 6 Nov 2025 02:18:29 -0500
+Subject: [PATCH] implementacion de vitas faltantes
+
+---
+ frontend/src/App.jsx                    |  61 ++-
+ frontend/src/components/Navbar.jsx      | 242 +++++-----
+ frontend/src/pages/HomePageLogueado.jsx | 411 ++++++++++++++++
+ frontend/src/pages/Recompensas.jsx      | 586 +++++++++++------------
+ frontend/src/pages/SesionesTareas.jsx   | 606 ++++++++++++++++++++++++
+ frontend/src/pages/Tareas.jsx           | 486 +++++++++----------
+ frontend/src/services/api.jsx           |  70 +--
+ frontend/src/services/config.jsx        |  67 +--
+ frontend/src/services/meditacion.jsx    |  49 +-
+ frontend/src/services/sesionGrupal.jsx  |  35 +-
+ 10 files changed, 1815 insertions(+), 798 deletions(-)
+ create mode 100644 frontend/src/pages/HomePageLogueado.jsx
+ create mode 100644 frontend/src/pages/SesionesTareas.jsx
+
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index 7fab83b..522ee08 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -1,11 +1,10 @@
++// frontend/src/App.jsx
+ import React, { useState, useEffect, Suspense } from 'react';
+ import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+ import ErrorBoundary from './ErrorBoundary';
+-
+-// Importar loader directamente (no dinámicamente) - ES CRÍTICO
+ import Loader from './components/loader';
+ 
+-// Función para importar componentes de forma segura
++// Importar componentes con manejo seguro de errores
+ const safeLazy = (importFn, fallback = null) => {
+   return React.lazy(() => 
+     importFn().catch(err => {
+@@ -29,17 +28,22 @@ const safeLazy = (importFn, fallback = null) => {
+   );
+ };
+ 
+-// Importar componentes usando safeLazy
++// Componentes principales
+ const Login = safeLazy(() => import('./pages/Login'));
+ const Register = safeLazy(() => import('./pages/Register'));
+ const Dashboard = safeLazy(() => import('./pages/Dashboard'));
+ const HomePage = safeLazy(() => import('./pages/HomePage'));
++const HomePageLogueado = safeLazy(() => import('./pages/HomePageLogueado'));
+ const Profile = safeLazy(() => import('./pages/Profile'));
+ const Meditacion = safeLazy(() => import('./pages/Meditacion'));
+ const Pomodoro = safeLazy(() => import('./pages/Pomodoro'));
++const Recompensas = safeLazy(() => import('./pages/Recompensas'));
++const SesionGrupal = safeLazy(() => import('./pages/SesionGrupal'));
++const Tareas = safeLazy(() => import('./pages/Tareas'));
++const SesionesTareas = safeLazy(() => import('./pages/SesionesTareas'));
+ const AdminPanel = safeLazy(() => import('./pages/AdminPanel'));
+ 
+-// Importar componentes comunes
++// Componentes comunes
+ const Navbar = safeLazy(() => import('./components/Navbar'));
+ const Footer = safeLazy(() => import('./components/Footer'));
+ const AuthModal = safeLazy(() => import('./components/AuthModal'));
+@@ -55,7 +59,7 @@ export default function App() {
+   const [loadingApp, setLoadingApp] = useState(true);
+   const [authOpen, setAuthOpen] = useState(false);
+   const [authMode, setAuthMode] = useState('login');
+-  const [usuario, setUsuario] = useState(getUsuario());
++  const [usuario, setUsuario] = useState(null);
+   const [theme, setTheme] = useState(() => {
+     try {
+       return window.localStorage.getItem('theme') || 'light';
+@@ -81,9 +85,8 @@ export default function App() {
+       if (isMounted) {
+         setLoadingApp(false);
+       }
+-    }, 1000); // Tiempo máximo de espera para el loader
++    }, 1000);
+ 
+-    // Forzar finalización del loader después de 3 segundos como máximo
+     const timeoutFallback = setTimeout(() => {
+       if (isMounted) {
+         console.warn('Tiempo de carga excedido, forzando renderizado');
+@@ -125,9 +128,17 @@ export default function App() {
+       setAuthOpen(true);
+       return;
+     }
++    
+     closeAuth();
+-    setUsuario(getUsuario());
+-    nav('/dashboard', { replace: true });
++    const user = getUsuario();
++    setUsuario(user);
++    
++    // Si es login exitoso, redirigir a página de bienvenida
++    if (fromMode === 'login') {
++      nav('/bienvenida', { replace: true });
++    } else {
++      nav('/dashboard', { replace: true });
++    }
+   };
+ 
+   // Verificación periódica de autenticación
+@@ -229,6 +240,11 @@ export default function App() {
+                 <Route path="/register" element={<Navigate to="/" replace />} />
+                 
+                 {/* Páginas privadas */}
++                <Route path="/bienvenida" element={
++                  <PrivateRoute>
++                    <HomePageLogueado />
++                  </PrivateRoute>
++                } />
+                 <Route path="/dashboard" element={
+                   <PrivateRoute>
+                     <Dashboard />
+@@ -249,14 +265,35 @@ export default function App() {
+                     <Pomodoro />
+                   </PrivateRoute>
+                 } />
+-                
+-                {/* Admin */}
++                <Route path="/recompensas" element={
++                  <PrivateRoute>
++                    <Recompensas />
++                  </PrivateRoute>
++                } />
++                <Route path="/sesion-grupal" element={
++                  <PrivateRoute>
++                    <SesionGrupal />
++                  </PrivateRoute>
++                } />
++                <Route path="/tareas" element={
++                  <PrivateRoute>
++                    <Tareas />
++                  </PrivateRoute>
++                } />
++                <Route path="/sesiones-tareas" element={
++                  <PrivateRoute>
++                    <SesionesTareas />
++                  </PrivateRoute>
++                } />
+                 <Route path="/admin" element={
+                   <PrivateRoute>
+                     <AdminPanel />
+                   </PrivateRoute>
+                 } />
+                 
++                {/* Redirección por defecto para usuarios logueados */}
++                <Route path="/home" element={<Navigate to="/bienvenida" replace />} />
++                
+                 {/* Ruta no encontrada */}
+                 <Route path="*" element={
+                   <div style={{ 
+diff --git a/frontend/src/components/Navbar.jsx b/frontend/src/components/Navbar.jsx
+index c5e3b74..d2eff86 100644
+--- a/frontend/src/components/Navbar.jsx
++++ b/frontend/src/components/Navbar.jsx
+@@ -2,7 +2,7 @@
+ 
+ import React, { useState, useEffect } from "react";
+ import { Link, useLocation } from "react-router-dom";
+-import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
++import { Home, LayoutDashboard, Brain, Clock, Users, Calendar, Star, Shield, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+ import isotipo from "../IMG/isotipo.png";
+ import ThemeSelector from './ThemeSelector';
+ import LanguageSelector from './LanguageSelector';
+@@ -47,12 +47,15 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+ 
+   const navItems = [
+     { path: '/', label: t('home'), icon: <Home size={18} /> },
+-    { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
+-    { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
+-    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
+-    { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
++    { path: '/dashboard', label: t('dashboard'), icon: <LayoutDashboard size={18} />, requiresAuth: true },
++    { path: '/pomodoro', label: t('pomodoro'), icon: <Clock size={18} />, requiresAuth: true },
++    { path: '/meditacion', label: t('meditation'), icon: <Brain size={18} />, requiresAuth: true },
++    { path: '/sesion-grupal', label: t('group_session'), icon: <Users size={18} />, requiresAuth: true },
++    { path: '/tareas', label: t('tasks'), icon: <Calendar size={18} />, requiresAuth: true },
++    { path: '/recompensas', label: t('rewards'), icon: <Star size={18} />, requiresAuth: true },
++    { path: '/admin', label: t('admin'), icon: <Shield size={18} />, requiresAuth: true, adminOnly: true },
+     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+-  ];
++  ].filter(item => !item.adminOnly || (user?.rol_id === 1)); // Mostrar panel de admin solo para administradores
+ 
+   const handleProfileMenuMouseLeave = () => {
+     setTimeout(() => setOpenProfile(false), 150); 
+@@ -95,6 +98,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+         <nav>
+           <ul className="sidebar-menu">
+             {navItems.map(item => {
++              if (item.requiresAuth && !user) return null;
++              
+               const isActive = location.pathname === item.path;
+               return (
+                 <li key={item.path}>
+@@ -209,60 +214,63 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+ 
+       {/* Mobile menu dropdown shown when hamburger is open */}
+       <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`} aria-hidden={!isMenuOpen}>
+-  <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
+-          <div className="mobile-menu-header">
+-            <div className="mobile-selectors-top">
+-              <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
+-              <LanguageSelector currentLng={i18n.language} compact={true} />
+-            </div>
+-            <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
+-              <X size={18} />
+-            </button>
+-          </div>
+-
+-          <nav className="mobile-nav">
+-            <ul>
+-              {navItems.map(item => (
+-                <li key={`mobile-${item.path}`}>
+-                  <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
+-                    <span className="link-icon">{item.icon}</span>
+-                    <span className="link-label">{item.label}</span>
+-                  </Link>
+-                </li>
+-              ))}
+-            </ul>
+-          </nav>
+-
+-          <div className="mobile-actions">
+-            {!user ? (
+-              <>
+-                <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
+-                  <LogIn size={16} />
+-                  <span>{t('login')}</span>
+-                </button>
+-                <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
+-                  <UserPlus size={16} />
+-                  <span>{t('register')}</span>
+-                </button>
+-              </>
+-            ) : (
+-              <>
+-                <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
+-                  <User size={16} />
+-                  <span>{t('my_account')}</span>
+-                </Link>
+-                <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
+-                  <User size={16} />
+-                  <span>{t('logout')}</span>
++      <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
++              <div className="mobile-menu-header">
++                <div className="mobile-selectors-top">
++                  <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
++                  <LanguageSelector currentLng={i18n.language} compact={true} />
++                </div>
++                <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
++                  <X size={18} />
+                 </button>
+-              </>
+-            )}
+-          </div>
++              </div>
+ 
+-          <div className="mobile-footer">
+-            <small>{t('welcome')}</small>
+-          </div>
+-        </div>
++              <nav className="mobile-nav">
++                <ul>
++                  {navItems.map(item => {
++                    if (item.requiresAuth && !user) return null;
++                    return (
++                      <li key={`mobile-${item.path}`}>
++                        <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
++                          <span className="link-icon">{item.icon}</span>
++                          <span className="link-label">{item.label}</span>
++                        </Link>
++                      </li>
++                    );
++                  })}
++                </ul>
++              </nav>
++
++              <div className="mobile-actions">
++                {!user ? (
++                  <>
++                    <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
++                      <LogIn size={16} />
++                      <span>{t('login')}</span>
++                    </button>
++                    <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
++                      <UserPlus size={16} />
++                      <span>{t('register')}</span>
++                    </button>
++                  </>
++                ) : (
++                  <>
++                    <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
++                      <User size={16} />
++                      <span>{t('my_account')}</span>
++                    </Link>
++                    <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
++                      <User size={16} />
++                      <span>{t('logout')}</span>
++                    </button>
++                  </>
++                )}
++              </div>
++
++              <div className="mobile-footer">
++                <small>{t('welcome')}</small>
++              </div>
++            </div>
+       </div>
+ 
+ 
+@@ -288,42 +296,42 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+           overflow: visible; /* Mantener visible para el menú desplegable */
+         }
+ 
+-  /* hide hamburger and mobile menu by default (visible only on small screens) */
+-  .hamburger-wrap { display: none; }
+-  .hamburger-btn { display: none; }
++        /* hide hamburger and mobile menu by default (visible only on small screens) */
++        .hamburger-wrap { display: none; }
++        .hamburger-btn { display: none; }
+         .mobile-menu { display: none; }
+ 
+         .sidebar.expanded { width: 220px; padding-left: 1rem; padding-right: 1rem; }
+-  .sidebar .nav-logo { display:flex; align-items:center; gap:0.65rem; text-decoration:none; }
+-  .sidebar .logo-img { width:36px; height:36px; object-fit:contain; border-radius:6px; }
++        .sidebar .nav-logo { display:flex; align-items:center; gap:0.65rem; text-decoration:none; }
++        .sidebar .logo-img { width:36px; height:36px; object-fit:contain; border-radius:6px; }
+           .sidebar-top { display:flex; align-items:center; justify-content:space-between; position: relative; }
+-  .sidebar .logo-text { font-weight:800; color: #111827; font-size:0.95rem; }
+-  /* hide logo text when collapsed */
+-  .sidebar.collapsed .logo-text { display: none; }
+-
+-  .sidebar-menu { list-style:none; padding:0; margin: 0.75rem 0; display:flex; flex-direction:column; gap:0.5rem; }
+-  .sidebar-link { display:flex; align-items:center; gap:0.75rem; color: #111827; text-decoration:none; padding:0.5rem 0.6rem; border-radius:10px; font-weight:600; transition: all 0.18s ease; outline: none; }
+-  .sidebar-link .link-icon { display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; color: #111827; }
+-  .sidebar-link .link-label { color: #111827; }
+-  /* Hide labels when collapsed */
+-  .sidebar.collapsed .link-label { display: none; }
+-  .sidebar.expanded .link-label { display: inline-block; }
+-  .sidebar-link:hover, .sidebar-link:focus, .sidebar-link:active { background: rgba(0,0,0,0.04); color:#111827; transform: none; outline: none; }
+-  .sidebar-link.active { background: transparent; color: #ffffff; }
+-  .sidebar-link.active { background: rgba(0,0,0,0.06); }
+-  .sidebar-link.active .link-icon { color: #111827; }
+-
+-  .sidebar-bottom { display:flex; flex-direction:column; gap:0.5rem; }
+-  .btn-login { background:transparent; border:1px solid transparent; color:#111827; padding:0.5rem; text-align:left; cursor:pointer; border-radius:8px; display:flex; align-items:center; gap:0.5rem; }
+-  .btn-login:hover { background: rgba(0,0,0,0.04); }
+-  .btn-register { background: linear-gradient(90deg,#7c3aed,#667eea); color:white; border:none; padding:0.55rem 0.9rem; border-radius:999px; cursor:pointer; box-shadow: 0 6px 18px rgba(99,102,241,0.12); display:flex; align-items:center; gap:0.5rem; }
+-  .btn-icon { color: #111827; }
+-  .btn-label { display: inline-block; }
+-  /* hide labels when collapsed */
+-  .sidebar.collapsed .btn-label { display: none; }
+-
+-  /* Keep the bottom area visually pinned on tall sidebars */
+-  .sidebar-bottom { margin-top: auto; }
++        .sidebar .logo-text { font-weight:800; color: #111827; font-size:0.95rem; }
++        /* hide logo text when collapsed */
++        .sidebar.collapsed .logo-text { display: none; }
++
++        .sidebar-menu { list-style:none; padding:0; margin: 0.75rem 0; display:flex; flex-direction:column; gap:0.5rem; }
++        .sidebar-link { display:flex; align-items:center; gap:0.75rem; color: #111827; text-decoration:none; padding:0.5rem 0.6rem; border-radius:10px; font-weight:600; transition: all 0.18s ease; outline: none; }
++        .sidebar-link .link-icon { display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; color: #111827; }
++        .sidebar-link .link-label { color: #111827; }
++        /* Hide labels when collapsed */
++        .sidebar.collapsed .link-label { display: none; }
++        .sidebar.expanded .link-label { display: inline-block; }
++        .sidebar-link:hover, .sidebar-link:focus, .sidebar-link:active { background: rgba(0,0,0,0.04); color:#111827; transform: none; outline: none; }
++        .sidebar-link.active { background: transparent; color: #ffffff; }
++        .sidebar-link.active { background: rgba(0,0,0,0.06); }
++        .sidebar-link.active .link-icon { color: #111827; }
++
++        .sidebar-bottom { display:flex; flex-direction:column; gap:0.5rem; }
++        .btn-login { background:transparent; border:1px solid transparent; color:#111827; padding:0.5rem; text-align:left; cursor:pointer; border-radius:8px; display:flex; align-items:center; gap:0.5rem; }
++        .btn-login:hover { background: rgba(0,0,0,0.04); }
++        .btn-register { background: linear-gradient(90deg,#7c3aed,#667eea); color:white; border:none; padding:0.55rem 0.9rem; border-radius:999px; cursor:pointer; box-shadow: 0 6px 18px rgba(99,102,241,0.12); display:flex; align-items:center; gap:0.5rem; }
++        .btn-icon { color: #111827; }
++        .btn-label { display: inline-block; }
++        /* hide labels when collapsed */
++        .sidebar.collapsed .btn-label { display: none; }
++
++        /* Keep the bottom area visually pinned on tall sidebars */
++        .sidebar-bottom { margin-top: auto; }
+ 
+         /* Responsive: collapse sidebar to top bar on small screens */
+         @media (max-width: 900px) {
+@@ -351,11 +359,11 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+           .sidebar .logo-img { width:32px; height:32px; }
+ 
+           /* Hamburger: small fixed square in the corner. Only this small box responds to hover. */
+-  .hamburger-wrap { display:flex !important; position: fixed; right: 8px; top: 8px; width:34px; height:34px; align-items:center; justify-content:center; z-index:1101; border-radius:6px; background: transparent !important; box-shadow: none !important; transition: background 160ms ease, transform 120ms ease; }
+-  .hamburger-wrap:hover { background: linear-gradient(90deg,#7c3aed,#667eea) !important; transform: scale(1.02); }
+-  .hamburger-btn { display:inline-flex !important; background: transparent !important; border: none !important; width:22px; height:22px; align-items:center; justify-content:center; padding:0; cursor:pointer; color: #6b7280 !important; box-shadow: none !important; }
+-  .hamburger-btn svg { display:block; }
+-  .hamburger-wrap:hover .hamburger-btn { color: #ffffff !important; }
++        .hamburger-wrap { display:flex !important; position: fixed; right: 8px; top: 8px; width:34px; height:34px; align-items:center; justify-content:center; z-index:1101; border-radius:6px; background: transparent !important; box-shadow: none !important; transition: background 160ms ease, transform 120ms ease; }
++        .hamburger-wrap:hover { background: linear-gradient(90deg,#7c3aed,#667eea) !important; transform: scale(1.02); }
++        .hamburger-btn { display:inline-flex !important; background: transparent !important; border: none !important; width:22px; height:22px; align-items:center; justify-content:center; padding:0; cursor:pointer; color: #6b7280 !important; box-shadow: none !important; }
++        .hamburger-btn svg { display:block; }
++        .hamburger-wrap:hover .hamburger-btn { color: #ffffff !important; }
+ 
+           /* Lower logo slightly and ensure full visibility */
+           .sidebar .logo-img { margin-top:10px; width:40px; height:40px; }
+@@ -383,32 +391,30 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
+           .mobile-footer { padding:0.6rem 1rem 1rem; border-top:1px solid rgba(0,0,0,0.04); color:#6b7280; font-size:0.85rem; }
+         }
+           /* ==================== */
+-/* Corrección de Color de ÍCONOS Fijos */
+-/* ==================== */
++  /* Corrección de Color de ÍCONOS Fijos */
++  /* ==================== */
+ 
+-/* Selecciona el span que contiene el ícono y fuerza su color */
+-.sidebar-link .link-icon { 
+-    /* El color gris oscuro deseado que no debe cambiar */
+-    color: #374151 !important; 
+-}
++  /* Selecciona el span que contiene el ícono y fuerza su color */
++  .sidebar-link .link-icon { 
++      /* El color gris oscuro deseado que no debe cambiar */
++      color: #374151 !important; 
++  }
+ 
+-/* Asegura que los íconos SVG dentro del link-icon también usen ese color */
+-.sidebar-link .link-icon svg {
+-    color: #374151 !important;
+-    /* Relleno (fill) opcional si los íconos lo usan */
+-    fill: none !important; 
+-}
++  /* Asegura que los íconos SVG dentro del link-icon también usen ese color */
++  .sidebar-link .link-icon svg {
++      color: #374151 !important;
++      /* Relleno (fill) opcional si los íconos lo usan */
++      fill: none !important; 
++  }
+ 
+-/* Manejo del color cuando el link está ACTIVO (puede ser diferente) */
+-.sidebar-link.active .link-icon,
+-.sidebar-link.active .link-icon svg {
+-    /* Si quieres que los íconos activos SÍ cambien (ej. al color primario o blanco) 
+-       ajusta este color. De lo contrario, mantenlo fijo. */
+-    color: #111827 !important; /* Ejemplo: se vuelven más oscuros cuando están activos */
+-}
++  /* Manejo del color cuando el link está ACTIVO (puede ser diferente) */
++  .sidebar-link.active .link-icon,
++  .sidebar-link.active .link-icon svg {
++      /* Si quieres que los íconos activos SÍ cambien (ej. al color primario o blanco) 
++         ajusta este color. De lo contrario, mantenlo fijo. */
++      color: #111827 !important; /* Ejemplo: se vuelven más oscuros cuando están activos */
++  }
+       `}</style>
+     </>
+   );
+-}
+-
+-// Añadimos cleanup por si acaso (no export por fuera del componente)
+\ No newline at end of file
++}
+\ No newline at end of file
+diff --git a/frontend/src/pages/HomePageLogueado.jsx b/frontend/src/pages/HomePageLogueado.jsx
+new file mode 100644
+index 0000000..d20cc91
+--- /dev/null
++++ b/frontend/src/pages/HomePageLogueado.jsx
+@@ -0,0 +1,411 @@
++// frontend/src/pages/HomePageLogueado.jsx
++import React, { useState, useEffect } from 'react';
++import {
++    Clock,
++    Brain,
++    Users,
++    Star,
++    Calendar,
++    Flame,
++    TrendingUp,
++    Plus,
++    Play,
++    Trophy,
++} from 'lucide-react';
++import { useTranslation } from 'react-i18next';
++import { useNavigate, Link } from 'react-router-dom';
++import api from '../services/api';
++import {
++    LineChart,
++    Line,
++    XAxis,
++    YAxis,
++    CartesianGrid,
++    Tooltip,
++    ResponsiveContainer,
++} from 'recharts';
++
++export default function HomePageLogueado() {
++    const { t } = useTranslation();
++    const navigate = useNavigate();
++    const [stats, setStats] = useState({
++        nombre: '',
++        sesionesHoy: 0,
++        tiempoTotal: '0h',
++        tareasCompletadas: 0,
++        racha: 0,
++        nivel: 1,
++        puntos: 0,
++    });
++    const [proximasTareas, setProximasTareas] = useState([]);
++    const [ultimasSesiones, setUltimasSesiones] = useState([]);
++    const [chartData, setChartData] = useState([]);
++    const [loading, setLoading] = useState(true);
++    const [error, setError] = useState(null);
++
++    useEffect(() => {
++        const fetchData = async () => {
++            try {
++                setLoading(true);
++
++                const [statsRes, tareasRes, sesionesRes, progresoSemanaRes] = await Promise.all([
++                    api.get('/estadisticas'),
++                    api.get('/tareas?estado=Pendiente&limit=5'),
++                    api.get('/sesiones?limit=5'),
++                    api.get('/progreso/semana'),
++                ]);
++
++                setStats(statsRes.data);
++                setProximasTareas(Array.isArray(tareasRes.data) ? tareasRes.data : []);
++                setUltimasSesiones(Array.isArray(sesionesRes.data) ? sesionesRes.data : []);
++
++                // Usar datos reales de la semana
++                const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
++                const data = diasSemana.map((name, index) => {
++                    const diaData = progresoSemanaRes.data.dias[index];
++                    return {
++                        name,
++                        sesiones: diaData ? diaData.sesiones_realizadas || 0 : 0,
++                    };
++                });
++                setChartData(data);
++            } catch (err) {
++                console.error('Error al cargar datos:', err);
++                setError(t('error_loading_stats', 'Error al cargar tus estadísticas'));
++            } finally {
++                setLoading(false);
++            }
++        };
++
++        fetchData();
++    }, [t]);
++
++    const getTecnicaIcon = (tecnica) => {
++        const lower = tecnica?.toLowerCase() || '';
++        if (lower.includes('meditacion') || lower.includes('meditación')) return <Brain size={18} />;
++        if (lower.includes('pomodoro')) return <Clock size={18} />;
++        if (lower.includes('grupo') || lower.includes('sesion grupal')) return <Users size={18} />;
++        return <Flame size={18} />;
++    };
++
++    const getTecnicaColor = (tecnica) => {
++        const lower = tecnica?.toLowerCase() || '';
++        if (lower.includes('meditacion') || lower.includes('meditación'))
++            return 'bg-purple-100 text-purple-800';
++        if (lower.includes('pomodoro')) return 'bg-blue-100 text-blue-800';
++        if (lower.includes('grupo') || lower.includes('sesion grupal'))
++            return 'bg-green-100 text-green-800';
++        return 'bg-amber-100 text-amber-800';
++    };
++
++    const getPrioridadColor = (prioridad) => {
++        switch (prioridad) {
++            case 'alta': return 'border-l-red-500 bg-red-50';
++            case 'media': return 'border-l-amber-500 bg-amber-50';
++            default: return 'border-l-green-500 bg-green-50';
++        }
++    };
++
++    const getPrioridadBadge = (prioridad) => {
++        switch (prioridad) {
++            case 'alta': return 'bg-red-100 text-red-800';
++            case 'media': return 'bg-amber-100 text-amber-800';
++            default: return 'bg-green-100 text-green-800';
++        }
++    };
++
++    if (loading) {
++        return (
++            <div className="container mx-auto px-4 py-8">
++                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
++                    {[...Array(4)].map((_, i) => (
++                        <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse border border-gray-100">
++                            <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
++                            <div className="h-8 bg-gray-200 rounded w-1/3"></div>
++                        </div>
++                    ))}
++                </div>
++
++                <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100 animate-pulse">
++                    <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
++                    <div className="h-64 bg-gray-200 rounded"></div>
++                </div>
++
++                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
++                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-pulse">
++                        <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
++                        <div className="space-y-4">
++                            {[...Array(3)].map((_, i) => (
++                                <div key={i} className="flex items-center justify-between">
++                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
++                                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
++                                </div>
++                            ))}
++                        </div>
++                    </div>
++
++                    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 animate-pulse">
++                        <div className="h-8 bg-gray-200 rounded w-1/3 mb-6"></div>
++                        <div className="space-y-4">
++                            {[...Array(3)].map((_, i) => (
++                                <div key={i} className="flex items-center justify-between">
++                                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
++                                    <div className="h-8 w-8 bg-gray-200 rounded-full"></div>
++                                </div>
++                            ))}
++                        </div>
++                    </div>
++                </div>
++            </div>
++        );
++    }
++
++    return (
++        <div className="container mx-auto px-4 py-6">
++            {/* Encabezado */}
++            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
++                <div>
++                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
++                        {t('welcome_back')}{' '}
++                        <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
++                            {stats.nombre || 'Usuario'}
++                        </span>
++                    </h1>
++                    <p className="text-gray-600 mt-1">{t('dashboard_subtitle', 'Tu progreso y actividades recientes')}</p>
++                </div>
++
++                <div className="flex items-center gap-3 bg-indigo-50 rounded-xl p-3 px-4">
++                    <div className="bg-indigo-100 rounded-full p-2">
++                        <Star className="text-indigo-600" size={20} />
++                    </div>
++                    <div>
++                        <div className="font-bold text-indigo-900 text-sm">Nivel {stats.nivel || 1}</div>
++                        <div className="text-xs text-indigo-700">{stats.puntos || 0} pts</div>
++                    </div>
++                </div>
++            </div>
++
++            {/* Estadísticas clave */}
++            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
++                {[
++                    {
++                        title: t('sessions_today'),
++                        value: stats.sesionesHoy || 0,
++                        icon: <Clock className="text-indigo-500" size={20} />,
++                        change: `+${Math.min(3, stats.sesionesHoy)} ${t('from_yesterday')}`,
++                        changeColor: 'text-green-600',
++                    },
++                    {
++                        title: t('total_time'),
++                        value: stats.tiempoTotal || '0h',
++                        icon: <Clock className="text-purple-500" size={20} />,
++                        change: t('this_month'),
++                        changeColor: 'text-gray-500',
++                    },
++                    {
++                        title: t('completed_tasks'),
++                        value: stats.tareasCompletadas || 0,
++                        icon: <Calendar className="text-blue-500" size={20} />,
++                        change:
++                            stats.tareasCompletadas > 0
++                                ? `${Math.min(100, Math.round((stats.tareasCompletadas / 10) * 100))}%`
++                                : t('start_today'),
++                        changeColor: stats.tareasCompletadas > 0 ? 'text-blue-600' : 'text-gray-500',
++                    },
++                    {
++                        title: t('streak'),
++                        value: `${stats.racha || 0} ${t('days')}`,
++                        icon: <Flame className="text-red-500" size={20} />,
++                        change: stats.racha > 0 ? t('keep_going') : t('start_streak'),
++                        changeColor: stats.racha > 0 ? 'text-amber-600' : 'text-gray-500',
++                    },
++                ].map((item, i) => (
++                    <div
++                        key={i}
++                        className="bg-white rounded-xl p-5 border border-gray-200 hover:shadow-md transition-shadow"
++                    >
++                        <div className="flex justify-between items-start mb-3">
++                            <h3 className="text-sm font-medium text-gray-600">{item.title}</h3>
++                            {item.icon}
++                        </div>
++                        <div className="text-2xl font-bold text-gray-900">{item.value}</div>
++                        <div className={`mt-2 text-xs font-medium ${item.changeColor}`}>{item.change}</div>
++                    </div>
++                ))}
++            </div>
++
++            {/* Gráfico de progreso */}
++            <div className="bg-white rounded-xl p-6 mb-8 border border-gray-200">
++                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5">
++                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
++                        <TrendingUp size={20} className="text-indigo-600" />
++                        {t('progress_chart')}
++                    </h2>
++                    <div className="flex space-x-2 mt-2 sm:mt-0">
++                        <button className="px-3 py-1 text-xs bg-indigo-100 text-indigo-700 rounded-md font-medium">
++                            {t('week')}
++                        </button>
++                        <button className="px-3 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded-md font-medium">
++                            {t('month')}
++                        </button>
++                    </div>
++                </div>
++                <div className="h-72">
++                    <ResponsiveContainer width="100%" height="100%">
++                        <LineChart data={chartData}>
++                            <CartesianGrid strokeDasharray="4 4" stroke="#f1f5f9" />
++                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} />
++                            <YAxis stroke="#94a3b8" fontSize={12} />
++                            <Tooltip
++                                contentStyle={{
++                                    backgroundColor: 'white',
++                                    border: '1px solid #e2e8f0',
++                                    borderRadius: '10px',
++                                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
++                                }}
++                                labelStyle={{ fontWeight: '600', color: '#4b5563' }}
++                                formatter={(value) => [`${value} sesiones`, 'Sesiones']}
++                            />
++                            <Line
++                                type="monotone"
++                                dataKey="sesiones"
++                                stroke="#7c3aed"
++                                strokeWidth={2}
++                                dot={{ fill: '#7c3aed', r: 5 }}
++                                activeDot={{ r: 7, stroke: '#7c3aed', strokeWidth: 2 }}
++                            />
++                        </LineChart>
++                    </ResponsiveContainer>
++                </div>
++            </div>
++
++            {/* Actividades y tareas */}
++            <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
++                {/* Últimas sesiones */}
++                <div className="bg-white rounded-xl p-6 border border-gray-200">
++                    <div className="flex justify-between items-center mb-5">
++                        <h2 className="text-lg font-bold text-gray-900">{t('recent_activities')}</h2>
++                        <Link to="/sesiones" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
++                            {t('view_all')}
++                        </Link>
++                    </div>
++                    <div className="space-y-3">
++                        {ultimasSesiones.length > 0 ? (
++                            ultimasSesiones.map((sesion, index) => (
++                                <div
++                                    key={index}
++                                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
++                                >
++                                    <div className="flex items-center gap-3">
++                                        <div className={`p-2 rounded-lg ${getTecnicaColor(sesion.tecnica_nombre)}`}>
++                                            {getTecnicaIcon(sesion.tecnica_nombre)}
++                                        </div>
++                                        <div>
++                                            <div className="font-medium text-gray-800">{sesion.tecnica_nombre}</div>
++                                            <div className="text-xs text-gray-600">
++                                                {new Date(sesion.inicio).toLocaleDateString()} • {sesion.duracion || 0} min
++                                            </div>
++                                        </div>
++                                    </div>
++                                    <div className="text-sm font-bold text-indigo-600">+{sesion.puntos || 0} pts</div>
++                                </div>
++                            ))
++                        ) : (
++                            <div className="text-center py-8 text-gray-500 text-sm">
++                                {t('no_recent_activities')}
++                            </div>
++                        )}
++                    </div>
++                    <button
++                        onClick={() => navigate('/tecnica')}
++                        className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 text-indigo-600 bg-indigo-50 rounded-lg font-medium hover:bg-indigo-100 transition-colors"
++                    >
++                        <Play size={16} />
++                        {t('start_new_session')}
++                    </button>
++                </div>
++
++                {/* Próximas tareas */}
++                <div className="bg-white rounded-xl p-6 border border-gray-200">
++                    <div className="flex justify-between items-center mb-5">
++                        <h2 className="text-lg font-bold text-gray-900">{t('upcoming_tasks')}</h2>
++                        <Link to="/tareas" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">
++                            {t('view_all')}
++                        </Link>
++                    </div>
++                    <div className="space-y-3">
++                        {proximasTareas.length > 0 ? (
++                            proximasTareas.map((tarea, index) => (
++                                <div
++                                    key={index}
++                                    className={`pl-3 py-3 rounded-r-lg border-l-4 ${getPrioridadColor(tarea.prioridad)}`}
++                                >
++                                    <div className="flex justify-between items-start">
++                                        <div className="font-medium text-gray-800">{tarea.titulo}</div>
++                                        <span className={`text-xs px-2 py-1 rounded-full ${getPrioridadBadge(tarea.prioridad)}`}>
++                                            {tarea.prioridad}
++                                        </span>
++                                    </div>
++                                    <div className="text-xs text-gray-600 mt-1 line-clamp-1">
++                                        {tarea.descripcion || t('no_description')}
++                                    </div>
++                                    <div className="mt-2 flex justify-between text-xs text-gray-600">
++                                        <div className="flex items-center gap-1">
++                                            <Calendar size={12} /> {new Date(tarea.fecha_vencimiento).toLocaleDateString()}
++                                        </div>
++                                        <button className="text-indigo-600 hover:text-indigo-800 font-medium">
++                                            {t('mark_complete')}
++                                        </button>
++                                    </div>
++                                </div>
++                            ))
++                        ) : (
++                            <div className="text-center py-8 text-gray-500 text-sm">
++                                {t('no_upcoming_tasks')}
++                            </div>
++                        )}
++                    </div>
++                    <button
++                        onClick={() => navigate('/tareas/crear')}
++                        className="mt-4 w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-dashed border-gray-400 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
++                    >
++                        <Plus size={16} />
++                        {t('add_new_task')}
++                    </button>
++                </div>
++            </div>
++
++            {/* Logros */}
++            <div className="mt-9 bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-xl p-6 border border-indigo-100">
++                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-5">
++                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
++                        <Trophy className="text-amber-500" size={20} />
++                        {t('achievements_and_rewards')}
++                    </h2>
++                    <Link
++                        to="/recompensas"
++                        className="text-indigo-600 hover:text-indigo-800 font-medium text-sm flex items-center gap-1"
++                    >
++                        {t('view_all')} →
++                    </Link>
++                </div>
++
++                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
++                    {[1, 2, 3, 4].map((index) => (
++                        <Link
++                            key={index}
++                            to="/recompensas"
++                            className="bg-white rounded-lg p-4 text-center border border-gray-200 hover:border-indigo-300 transition-colors"
++                        >
++                            <div className="w-10 h-10 mx-auto rounded-full bg-amber-100 flex items-center justify-center mb-2">
++                                <Star className="text-amber-500" size={18} />
++                            </div>
++                            <div className="font-medium text-gray-800 text-sm">Recompensa {index}</div>
++                            <div className="text-xs text-gray-600">{index * 50} pts</div>
++                        </Link>
++                    ))}
++                </div>
++            </div>
++        </div>
++    );
++}
+\ No newline at end of file
+diff --git a/frontend/src/pages/Recompensas.jsx b/frontend/src/pages/Recompensas.jsx
+index d4e503a..3a8918e 100644
+--- a/frontend/src/pages/Recompensas.jsx
++++ b/frontend/src/pages/Recompensas.jsx
+@@ -1,347 +1,329 @@
++// frontend/src/pages/Recompensas.jsx
+ import React, { useState, useEffect } from 'react';
+-import { Calendar, Clock, Droplet, Star, Play, RotateCcw, TrendingUp, BarChart3 } from 'lucide-react';
+-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+-import './styles/Concentracion.css';
+-import api from '../services/api';
++import { Star, Gift, CheckCircle, Trophy, Box, Award, Crown, Loader } from 'lucide-react';
+ import { useTranslation } from 'react-i18next';
++import api from '../services/api';
+ 
+-const ConcentrationApp = () => {
+-  const [activeTab, setActiveTab] = useState('active');
+-  const [timer, setTimer] = useState(1500); // 25 minutos en segundos
+-  const [isRunning, setIsRunning] = useState(false);
+-  const [sessions, setSessions] = useState([]);
++const Recompensas = () => {
++  const { t } = useTranslation();
++  const [activeTab, setActiveTab] = useState('available');
++  const [recompensas, setRecompensas] = useState([]);
++  const [loading, setLoading] = useState(true);
++  const [error, setError] = useState(null);
++  const [consuming, setConsuming] = useState(null);
+   const [stats, setStats] = useState({
+-    weekMinutes: 127,
+-    completedSessions: 23,
+-    streak: 7,
+-    effectiveness: 89
++    total: 0,
++    consumidas: 0,
++    puntos: 0
+   });
+-  const [progressData, setProgressData] = useState([
+-    { day: 'Lun', minutes: 75 },
+-    { day: 'Mar', minutes: 110 },
+-    { day: 'Mié', minutes: 70 },
+-    { day: 'Jun', minutes: 95 },
+-    { day: 'Vie', minutes: 120 },
+-    { day: 'Sáb', minutes: 85 },
+-    { day: 'Dom', minutes: 55 }
+-  ]);
+-  const [monthlyData, setMonthlyData] = useState([
+-    { week: 'Sem 1', minutes: 380 },
+-    { week: 'Sem 2', minutes: 450 },
+-    { week: 'Sem 3', minutes: 350 },
+-    { week: 'Sem 4', minutes: 500 }
+-  ]);
+-
+-  // Defensive normalization: si por alguna razón `sessions` deja de ser un array
+-  // (por una respuesta inesperada de la API o por sobrescritura accidental),
+-  // forzamos a que sea un array vacío y lo registramos para debug.
+-  useEffect(() => {
+-    if (!Array.isArray(sessions)) {
+-      console.warn('ConcentrationApp: `sessions` expected array but got:', sessions);
+-      setSessions([]);
+-    }
+-  }, [sessions]);
+ 
+-  // Fetch data from API
+   useEffect(() => {
+-    fetchStats();
+-    fetchSessions();
+-  }, []);
++    const fetchData = async () => {
++      try {
++        setLoading(true);
++        setError(null);
++        
++        if (activeTab === 'available') {
++          const res = await api.get('/recompensa/disponibles');
++          setRecompensas(Array.isArray(res.data) ? res.data : []);
++        } else {
++          const res = await api.get('/recompensa/mis-recompensas');
++          const data = Array.isArray(res.data) ? res.data : res.data.recompensas || [];
++          
++          // Calcular estadísticas
++          const total = data.length;
++          const consumidas = data.filter(r => r.consumida).length;
++          const puntos = data.reduce((sum, r) => sum + (r.valor || 0), 0);
++          
++          setRecompensas(data);
++          setStats({ total, consumidas, puntos });
++        }
++      } catch (err) {
++        console.error('Error al cargar recompensas:', err);
++        setError(err.response?.data?.error || 'Error al cargar las recompensas');
++      } finally {
++        setLoading(false);
++      }
++    };
+ 
+-  // Timer countdown
+-  useEffect(() => {
+-    let interval = null;
+-    if (isRunning && timer > 0) {
+-      interval = setInterval(() => {
+-        setTimer(t => t - 1);
+-      }, 1000);
+-    } else if (timer === 0) {
+-      completeSession();
+-    }
+-    return () => clearInterval(interval);
+-  }, [isRunning, timer]);
++    fetchData();
++  }, [activeTab]);
+ 
+-  const fetchStats = async () => {
++  const consumirRecompensa = async (recompensaId) => {
++    if (!recompensaId || consuming) return;
++    
++    setConsuming(recompensaId);
+     try {
+-      const res = await api.get('/sesiones/estadisticas');
+-      setStats(res.data);
+-    } catch (error) {
+-      console.error('Error fetching stats:', error);
++      await api.patch('/recompensa/otorgar', {
++        recompensa_id: recompensaId
++      });
++      
++      // Actualizar datos después de consumir
++      if (activeTab === 'owned') {
++        fetchData();
++      } else {
++        setActiveTab('owned');
++      }
++    } catch (err) {
++      console.error('Error al consumir recompensa:', err);
++      setError('No se pudo consumir la recompensa');
++    } finally {
++      setConsuming(null);
+     }
+   };
+ 
+-  const fetchSessions = async () => {
++  const fetchData = async () => {
+     try {
+-      const res = await api.get('/sesiones');
+-      const data = res.data;
+-      // Normalizar la respuesta: la API puede devolver un array o un objeto con sessions
+-      if (Array.isArray(data)) {
+-        setSessions(data);
+-      } else if (data && Array.isArray(data.sessions)) {
+-        setSessions(data.sessions);
++      setLoading(true);
++      setError(null);
++      
++      if (activeTab === 'available') {
++        const res = await api.get('/recompensa/disponibles');
++        setRecompensas(Array.isArray(res.data) ? res.data : []);
+       } else {
+-        setSessions([]);
++        const res = await api.get('/recompensa/mis-recompensas');
++        const data = Array.isArray(res.data) ? res.data : res.data.recompensas || [];
++        
++        // Calcular estadísticas
++        const total = data.length;
++        const consumidas = data.filter(r => r.consumida).length;
++        const puntos = data.reduce((sum, r) => sum + (r.valor || 0), 0);
++        
++        setRecompensas(data);
++        setStats({ total, consumidas, puntos });
+       }
+-    } catch (error) {
+-      console.error('Error fetching sessions:', error);
+-      setSessions([]);
++    } catch (err) {
++      console.error('Error al cargar recompensas:', err);
++      setError(err.response?.data?.error || 'Error al cargar las recompensas');
++    } finally {
++      setLoading(false);
+     }
+   };
+ 
+-  const startTimer = () => setIsRunning(true);
+-  const resetTimer = () => {
+-    setIsRunning(false);
+-    setTimer(1500);
+-  };
+-
+-  const completeSession = async () => {
+-    setIsRunning(false);
+-    const sessionData = {
+-      technique: 'Pomodoro Clásico',
+-      duration: 25,
+-      effectiveness: Math.floor(Math.random() * 20) + 80,
+-      completed: true
+-    };
+-    
+-    try {
+-      await api.post('/sesiones', sessionData);
+-      fetchStats();
+-      fetchSessions();
+-    } catch (error) {
+-      console.error('Error saving session:', error);
++  const getIcon = (tipo) => {
++    switch (tipo) {
++      case 'personalizacion':
++        return <Box size={20} />;
++      case 'tecnica':
++        return <Trophy size={20} />;
++      case 'puntos':
++      default:
++        return <Star size={20} />;
+     }
+   };
+ 
+-  const formatTime = (seconds) => {
+-    const mins = Math.floor(seconds / 60);
+-    const secs = seconds % 60;
+-    return `${mins}:${secs.toString().padStart(2, '0')}`;
++  const getColorClass = (valor) => {
++    if (valor <= 25) return 'bg-purple-100 text-purple-800';
++    if (valor <= 50) return 'bg-blue-100 text-blue-800';
++    if (valor <= 75) return 'bg-teal-100 text-teal-800';
++    return 'bg-amber-100 text-amber-800';
+   };
+ 
+-  const { t } = useTranslation();
+-
+-  return (
+-    <div className="concentration-app">
+-      <div className="container">
+-        {/* Header */}
+-        <div className="header">
+-          <h1 className="header-title">{t('concentration')}</h1>
+-          <p className="header-subtitle">{t('concentration_subtitle', 'Fortalece tu capacidad de atención con técnicas científicamente probadas')}</p>
++  if (error) {
++    return (
++      <div className="container mx-auto px-4 py-8">
++        <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
++          {error}
+         </div>
++        <button 
++          onClick={fetchData} 
++          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
++        >
++          Reintentar
++        </button>
++      </div>
++    );
++  }
+ 
+-        {/* Stats Cards */}
+-        <div className="stats-grid">
+-            <div className="stat-card">
+-            <div className="stat-icon purple"><Clock /></div>
+-            <div className="stat-value">{stats.weekMinutes}min</div>
+-            <div className="stat-label">{t('this_week', 'Esta semana')}</div>
+-          </div>
+-          <div className="stat-card">
+-            <div className="stat-icon pink"><Calendar /></div>
+-            <div className="stat-value">{stats.completedSessions}</div>
+-            <div className="stat-label">Sesiones completadas</div>
++  return (
++    <div className="container mx-auto px-4 py-8">
++      <div className="mb-8">
++        <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('rewards')}</h1>
++        <p className="text-gray-500">{t('rewards_subtitle')}</p>
++      </div>
++      
++      {/* Tabs */}
++      <div className="mb-6 border-b border-gray-200">
++        <nav className="-mb-px flex space-x-8">
++          <button
++            onClick={() => setActiveTab('available')}
++            className={`${
++              activeTab === 'available'
++                ? 'border-indigo-500 text-indigo-600'
++                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
++            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
++          >
++            <Star className="mr-2" size={16} />
++            {t('available')}
++          </button>
++          <button
++            onClick={() => setActiveTab('owned')}
++            className={`${
++              activeTab === 'owned'
++                ? 'border-indigo-500 text-indigo-600'
++                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
++            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
++          >
++            <Gift className="mr-2" size={16} />
++            {t('owned')}
++          </button>
++        </nav>
++      </div>
++      
++      {/* Stats para recompensas obtenidas */}
++      {activeTab === 'owned' && !loading && (
++        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
++          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
++            <div className="flex items-center">
++              <Star className="text-indigo-500 mr-2" size={20} />
++              <div>
++                <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
++                <div className="text-sm text-gray-500">{t('total_rewards')}</div>
++              </div>
++            </div>
+           </div>
+-          <div className="stat-card">
+-            <div className="stat-icon blue"><Droplet /></div>
+-            <div className="stat-value">{stats.streak}</div>
+-            <div className="stat-label">Días consecutivos</div>
++          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
++            <div className="flex items-center">
++              <CheckCircle className="text-green-500 mr-2" size={20} />
++              <div>
++                <div className="text-2xl font-bold text-gray-800">{stats.consumidas}</div>
++                <div className="text-sm text-gray-500">{t('consumed_rewards')}</div>
++              </div>
++            </div>
+           </div>
+-          <div className="stat-card">
+-            <div className="stat-icon purple"><Star /></div>
+-            <div className="stat-value">{stats.effectiveness}%</div>
+-            <div className="stat-label">Efectividad</div>
++          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
++            <div className="flex items-center">
++              <Trophy className="text-amber-500 mr-2" size={20} />
++              <div>
++                <div className="text-2xl font-bold text-gray-800">{stats.puntos}</div>
++                <div className="text-sm text-gray-500">{t('total_points')}</div>
++              </div>
++            </div>
+           </div>
+         </div>
+-
+-        <div className="tabs-container">
+-          <div className="tabs-header">
+-            <button className={`tab-button ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>{t('session_active', 'Sesión Activa')}</button>
+-            <button className={`tab-button ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>{t('my_progress', 'Mi Progreso')}</button>
+-            <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>{t('history', 'Historial')}</button>
+-          </div>
+-
+-          <div className="tabs-content">
+-            {activeTab === 'active' && (
+-              <div className="session-active">
+-                <h2 className="session-title">Pomodoro Clásico</h2>
+-                <p className="session-subtitle">Mantén tu concentración durante 25 minutos</p>
+-
+-                <div className={`timer-circle ${isRunning ? 'active' : ''}`}>
+-                  <div className="timer-time">{formatTime(timer)}</div>
+-                  <div className="timer-label">{t('concentration')}</div>
+-                  <div className="timer-session">Sesión 1</div>
+-                </div>
+-
+-                <div className="session-stats">
+-                  <div className="session-stat-item">
+-                    <div className="session-stat-value">{Array.isArray(sessions) ? sessions.filter(s => s.completed).length : 0}</div>
+-                    <div className="session-stat-label">Completadas</div>
+-                  </div>
+-                  <div className="session-stat-item">
+-                    <div className="session-stat-value">{Math.floor(stats.weekMinutes/60)}h {stats.weekMinutes%60}m</div>
+-                    <div className="session-stat-label">Tiempo total</div>
++      )}
++      
++      {/* Contenido */}
++      {loading ? (
++        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
++          {[...Array(6)].map((_, i) => (
++            <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 animate-pulse">
++              <div className="p-6">
++                <div className="flex items-start space-x-4">
++                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
++                  <div className="flex-1 space-y-4">
++                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
++                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
++                    <div className="h-10 bg-gray-200 rounded-lg"></div>
+                   </div>
+                 </div>
+-
+-                <div className="button-group">
+-                    <button onClick={startTimer} disabled={isRunning} className="button button-primary"><Play /> {t('start', 'Iniciar')}</button>
+-                  <button onClick={resetTimer} className="button button-secondary"><RotateCcw /> {t('reset', 'Reiniciar')}</button>
+-                </div>
+               </div>
+-            )}
+-
+-            {activeTab === 'progress' && (
+-              <div>
+-                <div className="progress-grid">
+-                  <div className="progress-card purple">
+-                    <Calendar />
+-                    <div className="progress-card-value">31</div>
+-                    <div className="progress-card-label">Días mes</div>
+-                    <div className="progress-card-change">↑ 72.5% vs mes anterior</div>
+-                  </div>
+-                  <div className="progress-card pink">
+-                    <Clock />
+-                    <div className="progress-card-value">18.5h</div>
+-                    <div className="progress-card-label">Tiempo total</div>
+-                    <div className="progress-card-change">↑ 118% vs mes anterior</div>
+-                  </div>
+-                  <div className="progress-card purple">
+-                    <TrendingUp />
+-                    <div className="progress-card-value">91%</div>
+-                    <div className="progress-card-label">Promedio mensual</div>
+-                    <div className="progress-card-change">↑ 8% vs mes anterior</div>
+-                  </div>
+-                </div>
+-
+-                <div className="chart-container">
+-                  <h3 className="chart-title">Progreso Semanal</h3>
+-                  <ResponsiveContainer width="100%" height={250}>
+-                    <LineChart data={progressData}>
+-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+-                      <XAxis dataKey="day" stroke="#666" />
+-                      <YAxis stroke="#666" />
+-                      <Tooltip />
+-                      <Line type="monotone" dataKey="minutes" stroke="#9333ea" strokeWidth={3} dot={{ fill: '#9333ea', r: 6 }} />
+-                    </LineChart>
+-                  </ResponsiveContainer>
+-                </div>
+-
+-                <div className="charts-grid">
+-                  <div>
+-                    <h3 className="chart-title">Tendencia Mensual</h3>
+-                    <ResponsiveContainer width="100%" height={250}>
+-                      <BarChart data={monthlyData}>
+-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+-                        <XAxis dataKey="week" stroke="#666" />
+-                        <YAxis stroke="#666" />
+-                        <Tooltip />
+-                        <Bar dataKey="minutes" fill="#ec4899" radius={[8, 8, 0, 0]} />
+-                      </BarChart>
+-                    </ResponsiveContainer>
+-                  </div>
+-                  <div>
+-                    <h3 className="chart-title">Técnicas Más Usadas</h3>
+-                    <div className="techniques-list">
+-                      <div className="technique-item">
+-                        <div className="technique-header">
+-                          <div className="technique-name">Pomodoro Clásico</div>
+-                          <div className="technique-percentage">68%</div>
+-                        </div>
+-                        <div className="progress-bar-container"><div className="progress-bar purple" style={{width: '68%'}}></div></div>
+-                      </div>
+-                      <div className="technique-item">
+-                        <div className="technique-header">
+-                          <div className="technique-name">Concentración Profunda</div>
+-                          <div className="technique-percentage">24%</div>
+-                        </div>
+-                        <div className="progress-bar-container"><div className="progress-bar pink" style={{width: '24%'}}></div></div>
++            </div>
++          ))}
++        </div>
++      ) : recompensas.length === 0 ? (
++        <div className="text-center py-12 bg-gray-50 rounded-xl">
++          <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
++            <Star className="text-indigo-600" size={28} />
++          </div>
++          <h3 className="text-lg font-medium text-gray-900 mb-1">
++            {activeTab === 'available' 
++              ? t('no_available_rewards') 
++              : t('no_owned_rewards')}
++          </h3>
++          <p className="text-gray-500 max-w-md mx-auto">
++            {activeTab === 'available'
++              ? t('available_rewards_desc')
++              : t('owned_rewards_desc')}
++          </p>
++        </div>
++      ) : (
++        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
++          {recompensas.map((recompensa) => {
++            const isOwned = activeTab === 'owned';
++            const isConsumed = isOwned && recompensa.consumida;
++            const isLoading = consuming === recompensa.id_recompensa;
++            
++            return (
++              <div 
++                key={recompensa.id_recompensa}
++                className={`bg-white rounded-xl shadow-md overflow-hidden border ${
++                  isConsumed ? 'border-green-200' : 'border-gray-100'
++                } hover:shadow-lg transition-all`}
++              >
++                <div className="p-6">
++                  <div className="flex items-start space-x-4">
++                    <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
++                      isConsumed ? 'bg-green-100' : getColorClass(recompensa.valor)
++                    }`}>
++                      {getIcon(recompensa.tipo)}
++                    </div>
++                    <div className="flex-1">
++                      <div className="flex justify-between items-start">
++                        <h3 className="text-lg font-semibold text-gray-800">{recompensa.nombre}</h3>
++                        {isConsumed && (
++                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
++                            <CheckCircle className="mr-1" size={12} />
++                            {t('consumed')}
++                          </span>
++                        )}
+                       </div>
+-                      <div className="technique-item">
+-                        <div className="technique-header">
+-                          <div className="technique-name">Sprints Rápidos</div>
+-                          <div className="technique-percentage">8%</div>
++                      
++                      <p className="mt-1 text-gray-600 text-sm line-clamp-2">
++                        {recompensa.descripcion}
++                      </p>
++                      
++                      <div className="mt-4 flex items-center justify-between">
++                        <div className="flex items-center space-x-4">
++                          <div className="flex items-center text-amber-500">
++                            <Star className="mr-1" size={16} />
++                            <span className="font-medium">{recompensa.valor}</span>
++                          </div>
++                          
++                          {recompensa.nivel && (
++                            <div className="flex items-center text-indigo-600">
++                              <Crown className="mr-1" size={16} />
++                              <span className="text-xs font-medium">{recompensa.nivel}</span>
++                            </div>
++                          )}
+                         </div>
+-                        <div className="progress-bar-container"><div className="progress-bar light-purple" style={{width: '8%'}}></div></div>
+-                      </div>
+-                    </div>
+-                  </div>
+-                </div>
+-
+-                <div className="insights-card">
+-                  <div className="insights-content">
+-                    <div className="insights-icon"><BarChart3 /></div>
+-                    <div className="insights-body">
+-                      <div className="insights-title">Análisis Inteligente</div>
+-                      <div className="insights-text">Tu rendimiento ha mejorado un 15% esta semana. Los viernes son tus días más productivos, con un promedio de 140 minutos de concentración efectiva.</div>
+-                      <div className="insights-tags">
+-                        <span className="insights-tag">Constancia excelente</span>
+-                        <span className="insights-tag">Técnica favorita: Pomodoro</span>
+-                        <span className="insights-tag">Mejor horario: 10-12h</span>
++                        
++                        {isOwned && !isConsumed ? (
++                          <button
++                            onClick={() => consumirRecompensa(recompensa.id_recompensa)}
++                            disabled={isLoading}
++                            className={`${
++                              isLoading 
++                                ? 'bg-gray-300 cursor-not-allowed' 
++                                : 'bg-indigo-600 hover:bg-indigo-700'
++                            } inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
++                          >
++                            {isLoading ? (
++                              <Loader className="animate-spin mr-2" size={16} />
++                            ) : (
++                              <Gift className="mr-2" size={16} />
++                            )}
++                            {t('consume')}
++                          </button>
++                        ) : !isOwned && (
++                          <div className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
++                            {t('requirements')}:
++                            {Object.entries(recompensa.requisitos || {}).map(([key, value]) => (
++                              <span key={key} className="ml-1">{value} {key.replace('_', ' ')}</span>
++                            ))}
++                          </div>
++                        )}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               </div>
+-            )}
+-
+-            {activeTab === 'history' && (
+-              <div>
+-                <div className="history-filters">
+-                  <label className="filter-label">Técnica:</label>
+-                  <select className="filter-select">
+-                    <option>Todas las técnicas</option>
+-                    <option>Pomodoro Clásico</option>
+-                    <option>Concentración Profunda</option>
+-                    <option>Sprints Rápidos</option>
+-                  </select>
+-                </div>
+-
+-                <div className="history-table">
+-                  <table>
+-                    <thead>
+-                      <tr>
+-                        <th>Fecha</th>
+-                        <th>Técnica</th>
+-                        <th>Duración</th>
+-                        <th>Estado</th>
+-                        <th>Efectividad</th>
+-                        <th>Notas</th>
+-                      </tr>
+-                    </thead>
+-                    <tbody>
+-                      <tr>
+-                        <td className="history-date">14 ene 2024<br/><span className="history-time">14:15</span></td>
+-                        <td><span className="badge-blue">Concentración Profunda</span></td>
+-                        <td>45 min</td>
+-                        <td><span className="badge-green">Completada</span></td>
+-                        <td>
+-                          <div className="effectiveness-bar">
+-                            <div className="effectiveness-bar-container"><div className="effectiveness-bar-fill" style={{width: '95%'}}></div></div>
+-                            <div className="effectiveness-value">95%</div>
+-                          </div>
+-                        </td>
+-                        <td>Trabajo muy productivo</td>
+-                      </tr>
+-                      {/* Más filas de ejemplo... */}
+-                    </tbody>
+-                  </table>
+-                </div>
+-
+-                <div className="pagination">
+-                  <div className="pagination-info">Página 1 de 2</div>
+-                  <div className="pagination-buttons">
+-                    <button className="pagination-button">Anterior</button>
+-                    <button className="pagination-button">Siguiente</button>
+-                  </div>
+-                </div>
+-              </div>
+-            )}
+-          </div>
++            );
++          })}
+         </div>
+-      </div>
++      )}
+     </div>
+   );
+ };
+ 
+-export default ConcentrationApp;
+-
++export default Recompensas;
+\ No newline at end of file
+diff --git a/frontend/src/pages/SesionesTareas.jsx b/frontend/src/pages/SesionesTareas.jsx
+new file mode 100644
+index 0000000..b3ecbee
+--- /dev/null
++++ b/frontend/src/pages/SesionesTareas.jsx
+@@ -0,0 +1,606 @@
++// frontend/src/pages/SesionesTareas.jsx
++import React, { useState, useEffect } from 'react';
++import { Plus, Calendar, Clock, CheckCircle, XCircle, Filter, Search } from 'lucide-react';
++import { useTranslation } from 'react-i18next';
++import api from '../services/api';
++import cfg from '../services/config';
++
++export default function SesionesTareas() {
++    const { t } = useTranslation();
++    const [sesiones, setSesiones] = useState([]);
++    const [tareas, setTareas] = useState([]);
++    const [loading, setLoading] = useState(true);
++    const [error, setError] = useState(null);
++    const [filtroEstado, setFiltroEstado] = useState('todas');
++    const [busqueda, setBusqueda] = useState('');
++    const [modalNuevaSesion, setModalNuevaSesion] = useState(false);
++    const [nuevaSesion, setNuevaSesion] = useState({
++        nombre: '',
++        descripcion: '',
++        fecha_inicio: '',
++        fecha_fin: '',
++        tareas_seleccionadas: []
++    });
++
++    useEffect(() => {
++        cargarDatos();
++    }, []);
++
++    const cargarDatos = async () => {
++        try {
++            setLoading(true);
++
++            // Cargar sesiones y tareas en paralelo
++            const [sesionesRes, tareasRes] = await Promise.all([
++                api.get('/sesiones'),
++                api.get(cfg.paths.tareas)
++            ]);
++
++            setSesiones(Array.isArray(sesionesRes.data) ? sesionesRes.data : []);
++            setTareas(Array.isArray(tareasRes.data) ? tareasRes.data : []);
++        } catch (err) {
++            console.error('Error al cargar datos:', err);
++            setError('No se pudieron cargar las sesiones y tareas');
++        } finally {
++            setLoading(false);
++        }
++    };
++
++    const crearSesion = async () => {
++        if (!nuevaSesion.nombre.trim() || nuevaSesion.tareas_seleccionadas.length === 0) {
++            setError('El nombre es obligatorio y debes seleccionar al menos una tarea');
++            return;
++        }
++
++        try {
++            setLoading(true);
++
++            const payload = {
++                nombre: nuevaSesion.nombre.trim(),
++                descripcion: nuevaSesion.descripcion.trim() || null,
++                fecha_inicio: nuevaSesion.fecha_inicio || new Date().toISOString(),
++                fecha_fin: nuevaSesion.fecha_fin || null,
++                tareas_ids: nuevaSesion.tareas_seleccionadas
++            };
++
++            await api.post('/sesiones/tareas', payload);
++            await cargarDatos();
++            cerrarModal();
++        } catch (err) {
++            console.error('Error al crear sesión:', err);
++            setError(err.response?.data?.error || 'No se pudo crear la sesión');
++        } finally {
++            setLoading(false);
++        }
++    };
++
++    const toggleTareaSeleccionada = (tareaId) => {
++        setNuevaSesion(prev => {
++            if (prev.tareas_seleccionadas.includes(tareaId)) {
++                return {
++                    ...prev,
++                    tareas_seleccionadas: prev.tareas_seleccionadas.filter(id => id !== tareaId)
++                };
++            } else {
++                return {
++                    ...prev,
++                    tareas_seleccionadas: [...prev.tareas_seleccionadas, tareaId]
++                };
++            }
++        });
++    };
++
++    const cerrarModal = () => {
++        setModalNuevaSesion(false);
++        setNuevaSesion({
++            nombre: '',
++            descripcion: '',
++            fecha_inicio: '',
++            fecha_fin: '',
++            tareas_seleccionadas: []
++        });
++        setError(null);
++    };
++
++    const tareasFiltradas = tareas.filter(tarea => {
++        const coincideBusqueda = tarea.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
++            (tarea.descripcion && tarea.descripcion.toLowerCase().includes(busqueda.toLowerCase()));
++        const coincideEstado = filtroEstado === 'todas' || tarea.estado === filtroEstado;
++        return coincideBusqueda && coincideEstado;
++    });
++
++    const sesionesFiltradas = sesiones.filter(sesion => {
++        const coincideBusqueda = sesion.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
++            (sesion.descripcion && sesion.descripcion.toLowerCase().includes(busqueda.toLowerCase()));
++        return coincideBusqueda;
++    });
++
++    return (
++        <div className="container mx-auto px-4 py-8">
++            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
++                <div>
++                    <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('task_sessions')}</h1>
++                    <p className="text-gray-500">
++                        {t('task_sessions_desc', 'Organiza tus tareas en sesiones temáticas para mejorar tu productividad')}
++                    </p>
++                </div>
++
++                <button
++                    onClick={() => setModalNuevaSesion(true)}
++                    style={{
++                        background: 'linear-gradient(135deg, #7c3aed, #667eea)',
++                        color: 'white',
++                        border: 'none',
++                        padding: '10px 20px',
++                        borderRadius: '10px',
++                        fontWeight: '600',
++                        cursor: 'pointer',
++                        display: 'flex',
++                        alignItems: 'center',
++                        gap: '8px',
++                        boxShadow: '0 4px 6px rgba(124, 58, 237, 0.3)'
++                    }}
++                >
++                    <Plus size={18} />
++                    {t('new_session')}
++                </button>
++            </div>
++
++            {/* Filtros y búsqueda */}
++            <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
++                <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
++                    <Search size={18} style={{
++                        position: 'absolute',
++                        left: '12px',
++                        top: '50%',
++                        transform: 'translateY(-50%)',
++                        color: '#94a3b8'
++                    }} />
++                    <input
++                        type="text"
++                        value={busqueda}
++                        onChange={(e) => setBusqueda(e.target.value)}
++                        placeholder={t('search_sessions_tasks', 'Buscar sesiones o tareas...')}
++                        style={{
++                            width: '100%',
++                            padding: '10px 12px 10px 40px',
++                            border: '1px solid #e2e8f0',
++                            borderRadius: '12px',
++                            fontSize: '14px'
++                        }}
++                    />
++                </div>
++
++                <div style={{ display: 'flex', gap: '12px' }}>
++                    <select
++                        value={filtroEstado}
++                        onChange={(e) => setFiltroEstado(e.target.value)}
++                        style={{
++                            padding: '8px 12px',
++                            border: '1px solid #e2e8f0',
++                            borderRadius: '8px',
++                            background: 'white'
++                        }}
++                    >
++                        <option value="todas">{t('all_tasks', 'Todas las tareas')}</option>
++                        <option value="Pendiente">{t('pending', 'Pendientes')}</option>
++                        <option value="EnProgreso">{t('in_progress', 'En Progreso')}</option>
++                        <option value="Completado">{t('completed', 'Completadas')}</option>
++                    </select>
++                </div>
++            </div>
++
++            {/* Vista de sesiones */}
++            <div className="mb-12">
++                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
++                    <Calendar size={20} />
++                    {t('my_sessions', 'Mis Sesiones')}
++                </h2>
++
++                {loading ? (
++                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
++                        {[...Array(3)].map((_, i) => (
++                            <div key={i} className="bg-white rounded-xl shadow-md p-6 border border-gray-100 animate-pulse">
++                                <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
++                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
++                                <div className="h-12 bg-gray-100 rounded mt-4"></div>
++                            </div>
++                        ))}
++                    </div>
++                ) : sesionesFiltradas.length === 0 ? (
++                    <div className="text-center py-12 bg-gray-50 rounded-xl">
++                        <Calendar className="mx-auto text-gray-400" size={48} />
++                        <h3 className="text-lg font-medium text-gray-900 mt-4 mb-2">
++                            {t('no_sessions_yet', 'Aún no tienes sesiones')}
++                        </h3>
++                        <p className="text-gray-500 max-w-md mx-auto">
++                            {t('create_first_session_desc', 'Crea tu primera sesión para empezar a organizar tus tareas de forma más eficiente')}
++                        </p>
++                    </div>
++                ) : (
++                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
++                        {sesionesFiltradas.map(sesion => (
++                            <div
++                                key={sesion.id_sesion}
++                                className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 hover:shadow-lg transition-all cursor-pointer"
++                                onClick={() => {/* Navegar a detalles de sesión */ }}
++                            >
++                                <div className="p-6">
++                                    <div className="flex justify-between items-start mb-4">
++                                        <h3 className="text-lg font-semibold text-gray-800">{sesion.nombre}</h3>
++                                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${sesion.estado === 'Completada' ? 'bg-green-100 text-green-800' :
++                                                sesion.estado === 'EnProgreso' ? 'bg-blue-100 text-blue-800' :
++                                                    'bg-gray-100 text-gray-800'
++                                            }`}>
++                                            {sesion.estado === 'Completada' ? t('completed') :
++                                                sesion.estado === 'EnProgreso' ? t('in_progress') : t('pending')}
++                                        </div>
++                                    </div>
++
++                                    {sesion.descripcion && (
++                                        <p className="text-gray-600 mb-4 line-clamp-2">{sesion.descripcion}</p>
++                                    )}
++
++                                    <div className="space-y-2">
++                                        <div className="flex items-center text-sm text-gray-500">
++                                            <Calendar size={16} className="mr-2" />
++                                            {new Date(sesion.fecha_inicio).toLocaleDateString()}
++                                            {sesion.fecha_fin && ` - ${new Date(sesion.fecha_fin).toLocaleDateString()}`}
++                                        </div>
++
++                                        <div className="flex items-center text-sm text-gray-500">
++                                            <Clock size={16} className="mr-2" />
++                                            {sesion.tareas?.length || 0} {t('tasks')}
++                                        </div>
++
++                                        {sesion.progreso !== undefined && (
++                                            <div className="mt-3">
++                                                <div className="flex justify-between text-sm mb-1">
++                                                    <span className="text-gray-600">{t('progress')}</span>
++                                                    <span className="font-medium">{Math.round(sesion.progreso)}%</span>
++                                                </div>
++                                                <div className="w-full bg-gray-200 rounded-full h-2">
++                                                    <div
++                                                        className="bg-indigo-600 rounded-full h-2"
++                                                        style={{ width: `${Math.min(sesion.progreso || 0, 100)}%` }}
++                                                    ></div>
++                                                </div>
++                                            </div>
++                                        )}
++                                    </div>
++                                </div>
++
++                                {sesion.tareas && sesion.tareas.length > 0 && (
++                                    <div className="px-6 pb-6 mt-4 border-t border-gray-100">
++                                        <h4 className="text-sm font-medium text-gray-600 mb-2">
++                                            {t('session_tasks', 'Tareas de la sesión')}
++                                        </h4>
++                                        <div className="space-y-2 max-h-32 overflow-y-auto pr-2">
++                                            {sesion.tareas.slice(0, 3).map(tarea => (
++                                                <div key={tarea.id_tarea} className="flex items-start">
++                                                    {tarea.estado === 'Completado' ? (
++                                                        <CheckCircle className="text-green-500 mr-2 flex-shrink-0 mt-1" size={16} />
++                                                    ) : (
++                                                        <XCircle className="text-gray-400 mr-2 flex-shrink-0 mt-1" size={16} />
++                                                    )}
++                                                    <span className={`text-sm ${tarea.estado === 'Completado' ? 'text-gray-400 line-through' : 'text-gray-700'
++                                                        }`}>
++                                                        {tarea.titulo}
++                                                    </span>
++                                                </div>
++                                            ))}
++                                            {sesion.tareas.length > 3 && (
++                                                <p className="text-xs text-indigo-600 mt-1">
++                                                    +{sesion.tareas.length - 3} {t('more_tasks', 'más tareas')}
++                                                </p>
++                                            )}
++                                        </div>
++                                    </div>
++                                )}
++                            </div>
++                        ))}
++                    </div>
++                )}
++            </div>
++
++            {/* Vista de tareas disponibles */}
++            <div>
++                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
++                    <CheckCircle size={20} />
++                    {t('available_tasks', 'Tareas Disponibles')}
++                </h2>
++
++                {loading ? (
++                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
++                        {[...Array(8)].map((_, i) => (
++                            <div key={i} className="bg-white rounded-lg border border-gray-200 p-3 animate-pulse">
++                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
++                                <div className="h-3 bg-gray-100 rounded w-1/2"></div>
++                            </div>
++                        ))}
++                    </div>
++                ) : tareasFiltradas.length === 0 ? (
++                    <div className="text-center py-8 bg-gray-50 rounded-lg">
++                        <p className="text-gray-500">{t('no_tasks_found', 'No se encontraron tareas que coincidan con tu búsqueda')}</p>
++                    </div>
++                ) : (
++                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
++                        {tareasFiltradas.map(tarea => (
++                            <div
++                                key={tarea.id_tarea}
++                                className={`bg-white rounded-lg border ${tarea.estado === 'Completado'
++                                        ? 'border-green-200 bg-green-50'
++                                        : 'border-gray-200'
++                                    } p-3 hover:shadow-md transition-all`}
++                            >
++                                <div className="flex justify-between items-start">
++                                    <div>
++                                        <h4 className={`font-medium ${tarea.estado === 'Completado'
++                                                ? 'text-gray-400 line-through'
++                                                : 'text-gray-800'
++                                            }`}>
++                                            {tarea.titulo}
++                                        </h4>
++                                        {tarea.sala_id && (
++                                            <p className="text-xs text-indigo-600 mt-1">
++                                                {t('in_session', 'En sesión')} {tarea.sala_id.substring(0, 5)}...
++                                            </p>
++                                        )}
++                                    </div>
++                                    <div className={`px-2 py-1 rounded text-xs font-medium ${tarea.prioridad === 'alta' ? 'bg-red-100 text-red-800' :
++                                            tarea.prioridad === 'media' ? 'bg-yellow-100 text-yellow-800' :
++                                                'bg-green-100 text-green-800'
++                                        }`}>
++                                        {tarea.prioridad}
++                                    </div>
++                                </div>
++                                {tarea.descripcion && (
++                                    <p className={`text-sm mt-2 ${tarea.estado === 'Completado'
++                                            ? 'text-gray-400 line-through'
++                                            : 'text-gray-600'
++                                        }`}>
++                                        {tarea.descripcion.substring(0, 50)}{tarea.descripcion.length > 50 ? '...' : ''}
++                                    </p>
++                                )}
++                                {tarea.fecha_vencimiento && (
++                                    <p className={`text-xs mt-2 flex items-center ${tarea.estado === 'Completado'
++                                            ? 'text-gray-400'
++                                            : new Date(tarea.fecha_vencimiento) < new Date()
++                                                ? 'text-red-500'
++                                                : 'text-gray-500'
++                                        }`}>
++                                        <Calendar size={12} className="mr-1" />
++                                        {new Date(tarea.fecha_vencimiento).toLocaleDateString()}
++                                    </p>
++                                )}
++                            </div>
++                        ))}
++                    </div>
++                )}
++            </div>
++
++            {/* Modal para crear nueva sesión */}
++            {modalNuevaSesion && (
++                <div style={{
++                    position: 'fixed',
++                    inset: 0,
++                    background: 'rgba(0,0,0,0.5)',
++                    display: 'flex',
++                    alignItems: 'center',
++                    justifyContent: 'center',
++                    zIndex: 1000
++                }} onClick={cerrarModal}>
++                    <div style={{
++                        background: 'white',
++                        borderRadius: '16px',
++                        width: '90%',
++                        maxWidth: '600px',
++                        maxHeight: '90vh',
++                        overflowY: 'auto',
++                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
++                        position: 'relative'
++                    }} onClick={e => e.stopPropagation()}>
++                        <div style={{ padding: '24px' }}>
++                            <h2 className="text-xl font-bold text-gray-800 mb-6">
++                                {t('create_new_session', 'Crear nueva sesión')}
++                            </h2>
++
++                            {error && (
++                                <div style={{
++                                    background: '#fee2e2',
++                                    color: '#b91c1c',
++                                    padding: '12px 16px',
++                                    borderRadius: '8px',
++                                    marginBottom: '16px'
++                                }}>
++                                    {error}
++                                </div>
++                            )}
++
++                            <div style={{ marginBottom: '20px' }}>
++                                <label style={{
++                                    display: 'block',
++                                    marginBottom: '6px',
++                                    fontWeight: '500',
++                                    color: '#334155'
++                                }}>
++                                    {t('session_name', 'Nombre de la sesión')}
++                                </label>
++                                <input
++                                    type="text"
++                                    value={nuevaSesion.nombre}
++                                    onChange={(e) => setNuevaSesion({ ...nuevaSesion, nombre: e.target.value })}
++                                    placeholder={t('session_name_placeholder', 'Ej: Estudio Matemáticas')}
++                                    style={{
++                                        width: '100%',
++                                        padding: '10px 12px',
++                                        border: '1px solid #e2e8f0',
++                                        borderRadius: '8px',
++                                        fontSize: '16px'
++                                    }}
++                                />
++                            </div>
++
++                            <div style={{ marginBottom: '20px' }}>
++                                <label style={{
++                                    display: 'block',
++                                    marginBottom: '6px',
++                                    fontWeight: '500',
++                                    color: '#334155'
++                                }}>
++                                    {t('description', 'Descripción')} (opcional)
++                                </label>
++                                <textarea
++                                    value={nuevaSesion.descripcion}
++                                    onChange={(e) => setNuevaSesion({ ...nuevaSesion, descripcion: e.target.value })}
++                                    placeholder={t('session_description_placeholder', 'Describe los objetivos de esta sesión...')}
++                                    rows="3"
++                                    style={{
++                                        width: '100%',
++                                        padding: '10px 12px',
++                                        border: '1px solid #e2e8f0',
++                                        borderRadius: '8px',
++                                        fontSize: '16px',
++                                        resize: 'vertical'
++                                    }}
++                                />
++                            </div>
++
++                            <div style={{ marginBottom: '24px' }}>
++                                <label style={{
++                                    display: 'block',
++                                    marginBottom: '12px',
++                                    fontWeight: '600',
++                                    color: '#1e293b'
++                                }}>
++                                    {t('select_tasks', 'Seleccionar tareas')}
++                                </label>
++
++                                {tareas.length === 0 ? (
++                                    <p className="text-gray-500 text-sm">
++                                        {t('no_tasks_available', 'No hay tareas disponibles. Crea algunas tareas primero.')}
++                                    </p>
++                                ) : (
++                                    <div style={{
++                                        maxHeight: '300px',
++                                        overflowY: 'auto',
++                                        border: '1px solid #e2e8f0',
++                                        borderRadius: '8px',
++                                        padding: '8px'
++                                    }}>
++                                        {tareas.map(tarea => (
++                                            <label
++                                                key={tarea.id_tarea}
++                                                style={{
++                                                    display: 'flex',
++                                                    alignItems: 'center',
++                                                    padding: '8px',
++                                                    borderRadius: '6px',
++                                                    cursor: 'pointer',
++                                                    background: nuevaSesion.tareas_seleccionadas.includes(tarea.id_tarea)
++                                                        ? 'rgba(124, 58, 237, 0.1)'
++                                                        : 'transparent',
++                                                    '&:hover': {
++                                                        background: 'rgba(124, 58, 237, 0.05)'
++                                                    }
++                                                }}
++                                            >
++                                                <input
++                                                    type="checkbox"
++                                                    checked={nuevaSesion.tareas_seleccionadas.includes(tarea.id_tarea)}
++                                                    onChange={() => toggleTareaSeleccionada(tarea.id_tarea)}
++                                                    style={{ marginRight: '10px' }}
++                                                />
++                                                <div style={{ flex: 1 }}>
++                                                    <div style={{
++                                                        fontWeight: 500,
++                                                        color: tarea.estado === 'Completado' ? '#94a3b8' : '#1e293b',
++                                                        textDecoration: tarea.estado === 'Completado' ? 'line-through' : 'none'
++                                                    }}>
++                                                        {tarea.titulo}
++                                                    </div>
++                                                    {tarea.descripcion && (
++                                                        <div style={{
++                                                            fontSize: '14px',
++                                                            color: '#64748b',
++                                                            marginTop: '2px',
++                                                            maxHeight: '36px',
++                                                            overflow: 'hidden'
++                                                        }}>
++                                                            {tarea.descripcion}
++                                                        </div>
++                                                    )}
++                                                </div>
++                                                <div style={{
++                                                    background: tarea.prioridad === 'alta' ? '#fee2e2' :
++                                                        tarea.prioridad === 'media' ? '#fef3c7' : '#dcfce7',
++                                                    color: tarea.prioridad === 'alta' ? '#b91c1c' :
++                                                        tarea.prioridad === 'media' ? '#b45309' : '#15803d',
++                                                    fontSize: '12px',
++                                                    padding: '2px 6px',
++                                                    borderRadius: '10px',
++                                                    fontWeight: 500
++                                                }}>
++                                                    {tarea.prioridad}
++                                                </div>
++                                            </label>
++                                        ))}
++                                    </div>
++                                )}
++                            </div>
++
++                            <div style={{
++                                display: 'flex',
++                                justifyContent: 'flex-end',
++                                gap: '12px',
++                                marginTop: '24px',
++                                paddingTop: '16px',
++                                borderTop: '1px solid #e2e8f0'
++                            }}>
++                                <button
++                                    onClick={cerrarModal}
++                                    style={{
++                                        background: 'transparent',
++                                        color: '#4b5563',
++                                        border: '1px solid #e2e8f0',
++                                        padding: '8px 16px',
++                                        borderRadius: '8px',
++                                        fontWeight: 500,
++                                        cursor: 'pointer'
++                                    }}
++                                >
++                                    {t('cancel', 'Cancelar')}
++                                </button>
++                                <button
++                                    onClick={crearSesion}
++                                    disabled={loading || !nuevaSesion.nombre.trim() || nuevaSesion.tareas_seleccionadas.length === 0}
++                                    style={{
++                                        background: loading || !nuevaSesion.nombre.trim() || nuevaSesion.tareas_seleccionadas.length === 0
++                                            ? '#9ca3af'
++                                            : 'linear-gradient(135deg, #7c3aed, #667eea)',
++                                        color: 'white',
++                                        border: 'none',
++                                        padding: '8px 16px',
++                                        borderRadius: '8px',
++                                        fontWeight: 500,
++                                        cursor: loading ? 'wait' : 'pointer',
++                                        display: 'flex',
++                                        alignItems: 'center',
++                                        gap: '6px'
++                                    }}
++                                >
++                                    {loading ? (
++                                        <span style={{ width: 16, height: 16, border: '2px solid white', borderLeft: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
++                                    ) : (
++                                        <Plus size={16} />
++                                    )}
++                                    {t('create_session', 'Crear Sesión')}
++                                </button>
++                            </div>
++                        </div>
++                    </div>
++                </div>
++            )}
++        </div>
++    );
++}
+\ No newline at end of file
+diff --git a/frontend/src/pages/Tareas.jsx b/frontend/src/pages/Tareas.jsx
+index ecd6375..594a378 100644
+--- a/frontend/src/pages/Tareas.jsx
++++ b/frontend/src/pages/Tareas.jsx
+@@ -3,278 +3,278 @@ import cfg from '../services/config';
+ import api from '../services/api';
+ import { getUsuario, logout, getToken } from '../services/auth';
+ import {
+-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+-  BarChart, Bar, XAxis, YAxis
++    PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
++    BarChart, Bar, XAxis, YAxis
+ } from 'recharts';
+ 
+ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+ 
+ export default function Dashboard() {
+-  const usuario = getUsuario();
+-  const [tareas, setTareas] = useState([]);
+-  const [loading, setLoading] = useState(false);
+-  const [error, setError] = useState('');
+-  const [form, setForm] = useState({
+-    titulo: '', descripcion: '', fecha_vencimiento: '',
+-    prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: ''
+-  });
+-  const [editingId, setEditingId] = useState(null);
+-  const [stats, setStats] = useState(null);
+-  const [filters, setFilters] = useState({ estado: '', prioridad: '' });
++    const usuario = getUsuario();
++    const [tareas, setTareas] = useState([]);
++    const [loading, setLoading] = useState(false);
++    const [error, setError] = useState('');
++    const [form, setForm] = useState({
++        titulo: '', descripcion: '', fecha_vencimiento: '',
++        prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: ''
++    });
++    const [editingId, setEditingId] = useState(null);
++    const [stats, setStats] = useState(null);
++    const [filters, setFilters] = useState({ estado: '', prioridad: '' });
+ 
+-  useEffect(() => {
+-    fetchAll();
+-    // Only fetch stats if we have an auth token to avoid 401 responses
+-    if (getToken()) fetchStats();
+-  }, []);
+-  function handleLogout() {
+-    logout(); // Elimina el token y los datos del usuario
+-    navigate('/login'); // Redirige a la página de login
+-  }
++    useEffect(() => {
++        fetchAll();
++        // Only fetch stats if we have an auth token to avoid 401 responses
++        if (getToken()) fetchStats();
++    }, []);
++    function handleLogout() {
++        logout(); // Elimina el token y los datos del usuario
++        navigate('/login'); // Redirige a la página de login
++    }
+ 
+-  async function fetchAll() {
+-    setLoading(true);
+-    setError('');
+-    try {
+-      const q = new URLSearchParams(filters).toString();
+-      const path = cfg.paths.tareas + (q ? ('?' + q) : '');
+-      const res = await api.get(path);
+-      setTareas(Array.isArray(res.data) ? res.data : res.data.results || []);
+-    } catch (e) {
+-      console.error(e);
+-      setError('Error cargando tareas: ' + (e.response?.data || e.message));
++    async function fetchAll() {
++        setLoading(true);
++        setError('');
++        try {
++            const q = new URLSearchParams(filters).toString();
++            const path = cfg.paths.tareas + (q ? ('?' + q) : '');
++            const res = await api.get(path);
++            setTareas(Array.isArray(res.data) ? res.data : res.data.results || []);
++        } catch (e) {
++            console.error(e);
++            setError('Error cargando tareas: ' + (e.response?.data || e.message));
++        }
++        setLoading(false);
+     }
+-    setLoading(false);
+-  }
+ 
+-  async function fetchStats() {
+-    try {
+-      const res = await api.get(cfg.paths.estadisticas);
+-      setStats(res.data);
+-    } catch (e) {
+-      // If unauthorized, ignore and keep stats null (frontend will show fallback)
+-      if (e?.response?.status === 401) return;
+-      console.error(e);
++    async function fetchStats() {
++        try {
++            const res = await api.get(cfg.paths.estadisticas);
++            setStats(res.data);
++        } catch (e) {
++            // If unauthorized, ignore and keep stats null (frontend will show fallback)
++            if (e?.response?.status === 401) return;
++            console.error(e);
++        }
+     }
+-  }
+ 
+-  async function handleCreateOrUpdate(e) {
+-    e.preventDefault();
+-    setError('');
+-    try {
+-      const payload = { ...form };
+-      if (editingId) {
+-        await api.put(`${cfg.paths.tareas}/${editingId}`, payload);
+-      } else {
+-        await api.post(cfg.paths.tareas, payload);
+-      }
+-      setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' });
+-      setEditingId(null);
+-      await fetchAll();
+-      await fetchStats();
+-    } catch (e) {
+-      console.error('Error completo:', e);
+-      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || 'Error desconocido al guardar la tarea';
+-      setError('Error guardando tarea: ' + errorMsg);
++    async function handleCreateOrUpdate(e) {
++        e.preventDefault();
++        setError('');
++        try {
++            const payload = { ...form };
++            if (editingId) {
++                await api.put(`${cfg.paths.tareas}/${editingId}`, payload);
++            } else {
++                await api.post(cfg.paths.tareas, payload);
++            }
++            setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' });
++            setEditingId(null);
++            await fetchAll();
++            await fetchStats();
++        } catch (e) {
++            console.error('Error completo:', e);
++            const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || 'Error desconocido al guardar la tarea';
++            setError('Error guardando tarea: ' + errorMsg);
++        }
+     }
+-  }
+ 
+-  function startEdit(t) {
+-    setEditingId(t.id_tarea);
+-    setForm({
+-      titulo: t.titulo || '', descripcion: t.descripcion || '',
+-      fecha_vencimiento: t.fecha_vencimiento || '',
+-      prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente',
+-      comentario: t.comentario || '', sala_id: t.sala_id || ''
+-    });
+-    window.scrollTo({ top: 0, behavior: 'smooth' });
+-  }
++    function startEdit(t) {
++        setEditingId(t.id_tarea);
++        setForm({
++            titulo: t.titulo || '', descripcion: t.descripcion || '',
++            fecha_vencimiento: t.fecha_vencimiento || '',
++            prioridad: t.prioridad || 'baja', estado: t.estado || 'Pendiente',
++            comentario: t.comentario || '', sala_id: t.sala_id || ''
++        });
++        window.scrollTo({ top: 0, behavior: 'smooth' });
++    }
+ 
+-  async function handleDelete(id) {
+-    if (!window.confirm('¿Eliminar tarea?')) return;
+-    try {
+-      await api.delete(`${cfg.paths.tareas}/${id}`);
+-      await fetchAll();
+-      await fetchStats();
+-    } catch (e) {
+-      console.error(e);
+-      setError('Error eliminando: ' + (e.response?.data || e.message));
++    async function handleDelete(id) {
++        if (!window.confirm('¿Eliminar tarea?')) return;
++        try {
++            await api.delete(`${cfg.paths.tareas}/${id}`);
++            await fetchAll();
++            await fetchStats();
++        } catch (e) {
++            console.error(e);
++            setError('Error eliminando: ' + (e.response?.data || e.message));
++        }
+     }
+-  }
+ 
+-  return (
+-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 20 }}>
++    return (
++        <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 20 }}>
+ 
+-      {/* Tareas Section */}
+-      <div className="card">
+-        {/* Header with light purple background */}
+-        <div
+-          style={{
+-            backgroundColor: '#c5a4ebec', // Morado claro
+-            padding: '10px 20px',
+-            borderRadius: '8px',
+-            display: 'flex',
+-            justifyContent: 'space-between',
+-            alignItems: 'center',
+-          }}
+-        >
+-          <h2 style={{ margin: 0 }}>Tareas</h2>
+-          <div>
+-            <strong>{usuario?.Username || usuario?.username || usuario?.correo}</strong>
+-            <button
+-              onClick={() => { logout(); window.location.href = '/login'; }}
+-              style={{
+-                marginLeft: 8,
+-                backgroundColor: '#8b3c86ff', // Morado
+-                color: 'white',
+-                border: 'none',
+-                padding: '6px 12px',
+-                borderRadius: '4px',
+-                cursor: 'pointer',
+-              }}
+-            >
+-              Cerrar sesión
+-            </button>
+-          </div>
+-        </div>
++            {/* Tareas Section */}
++            <div className="card">
++                {/* Header with light purple background */}
++                <div
++                    style={{
++                        backgroundColor: '#c5a4ebec', // Morado claro
++                        padding: '10px 20px',
++                        borderRadius: '8px',
++                        display: 'flex',
++                        justifyContent: 'space-between',
++                        alignItems: 'center',
++                    }}
++                >
++                    <h2 style={{ margin: 0 }}>Tareas</h2>
++                    <div>
++                        <strong>{usuario?.Username || usuario?.username || usuario?.correo}</strong>
++                        <button
++                            onClick={() => { logout(); window.location.href = '/login'; }}
++                            style={{
++                                marginLeft: 8,
++                                backgroundColor: '#8b3c86ff', // Morado
++                                color: 'white',
++                                border: 'none',
++                                padding: '6px 12px',
++                                borderRadius: '4px',
++                                cursor: 'pointer',
++                            }}
++                        >
++                            Cerrar sesión
++                        </button>
++                    </div>
++                </div>
+ 
+-        <form onSubmit={handleCreateOrUpdate} style={{ marginTop: 12 }}>
+-          <label>Título</label>
+-          <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} required />
++                <form onSubmit={handleCreateOrUpdate} style={{ marginTop: 12 }}>
++                    <label>Título</label>
++                    <input value={form.titulo} onChange={e => setForm({ ...form, titulo: e.target.value })} required />
+ 
+-          <label>Descripción</label>
+-          <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
++                    <label>Descripción</label>
++                    <textarea value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} />
+ 
+-          <label>Fecha vencimiento</label>
+-          <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} />
++                    <label>Fecha vencimiento</label>
++                    <input type="date" value={form.fecha_vencimiento || ''} onChange={e => setForm({ ...form, fecha_vencimiento: e.target.value })} />
+ 
+-          <label>Prioridad</label>
+-          <select value={form.prioridad} onChange={e => setForm({ ...form, prioridad: e.target.value })}>
+-            <option value="baja">baja</option>
+-            <option value="media">media</option>
+-            <option value="alta">alta</option>
+-          </select>
++                    <label>Prioridad</label>
++                    <select value={form.prioridad} onChange={e => setForm({ ...form, prioridad: e.target.value })}>
++                        <option value="baja">baja</option>
++                        <option value="media">media</option>
++                        <option value="alta">alta</option>
++                    </select>
+ 
+-          <label>Estado</label>
+-          <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
+-            <option value="Pendiente">Pendiente</option>
+-            <option value="EnProgreso">EnProgreso</option>
+-            <option value="EnEspera">EnEspera</option>
+-            <option value="Completado">Completado</option>
+-          </select>
++                    <label>Estado</label>
++                    <select value={form.estado} onChange={e => setForm({ ...form, estado: e.target.value })}>
++                        <option value="Pendiente">Pendiente</option>
++                        <option value="EnProgreso">EnProgreso</option>
++                        <option value="EnEspera">EnEspera</option>
++                        <option value="Completado">Completado</option>
++                    </select>
+ 
+-          <label>Comentario</label>
+-          <textarea value={form.comentario} onChange={e => setForm({ ...form, comentario: e.target.value })} />
++                    <label>Comentario</label>
++                    <textarea value={form.comentario} onChange={e => setForm({ ...form, comentario: e.target.value })} />
+ 
+-          <label>Sala ID (opcional)</label>
+-          <input value={form.sala_id} onChange={e => setForm({ ...form, sala_id: e.target.value })} />
++                    <label>Sala ID (opcional)</label>
++                    <input value={form.sala_id} onChange={e => setForm({ ...form, sala_id: e.target.value })} />
+ 
+-          <div style={{ display: 'flex', gap: 8 }}>
+-            <button type="submit">{editingId ? 'Guardar cambios' : 'Crear tarea'}</button>
+-            {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' }); }}>Cancelar</button>}
+-          </div>
+-        </form>
++                    <div style={{ display: 'flex', gap: 8 }}>
++                        <button type="submit">{editingId ? 'Guardar cambios' : 'Crear tarea'}</button>
++                        {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ titulo: '', descripcion: '', fecha_vencimiento: '', prioridad: 'baja', estado: 'Pendiente', comentario: '', sala_id: '' }); }}>Cancelar</button>}
++                    </div>
++                </form>
+ 
+-        <div style={{ marginTop: 12 }}>
+-          <h3>Filtros</h3>
+-          <div style={{ display: 'flex', gap: 8 }}>
+-            <select value={filters.estado} onChange={e => { setFilters({ ...filters, estado: e.target.value }); }}>
+-              <option value="">Todos estados</option>
+-              <option value="Pendiente">Pendiente</option>
+-              <option value="EnProgreso">EnProgreso</option>
+-              <option value="EnEspera">EnEspera</option>
+-              <option value="Completado">Completado</option>
+-            </select>
+-            <select value={filters.prioridad} onChange={e => { setFilters({ ...filters, prioridad: e.target.value }); }}>
+-              <option value="">Todas prioridades</option>
+-              <option value="alta">alta</option>
+-              <option value="media">media</option>
+-              <option value="baja">baja</option>
+-            </select>
+-            <button onClick={fetchAll}>Aplicar</button>
+-          </div>
+-        </div>
+-
+-        {loading ? (
+-          <div>Cargando tareas...</div>
+-        ) : (
+-          <table className="table">
+-            <thead>
+-              <tr>
+-                <th>Título</th>
+-                <th>Estado</th>
+-                <th>Prioridad</th>
+-                <th>Vence</th>
+-                <th>Acciones</th>
+-              </tr>
+-            </thead>
+-            <tbody>
+-              {tareas.map(t => (
+-                <tr key={t.id_tarea}>
+-                  <td>{t.titulo}</td>
+-                  <td>{t.estado}</td>
+-                  <td>{t.prioridad}</td>
+-                  <td>{t.fecha_vencimiento || '-'}</td>
+-                  <td>
+-                    <button onClick={() => startEdit(t)}>Editar</button>
+-                    <button onClick={() => handleDelete(t.id_tarea)} style={{ marginLeft: 8 }}>Eliminar</button>
+-                  </td>
+-                </tr>
+-              ))}
+-            </tbody>
+-          </table>
+-        )}
++                <div style={{ marginTop: 12 }}>
++                    <h3>Filtros</h3>
++                    <div style={{ display: 'flex', gap: 8 }}>
++                        <select value={filters.estado} onChange={e => { setFilters({ ...filters, estado: e.target.value }); }}>
++                            <option value="">Todos estados</option>
++                            <option value="Pendiente">Pendiente</option>
++                            <option value="EnProgreso">EnProgreso</option>
++                            <option value="EnEspera">EnEspera</option>
++                            <option value="Completado">Completado</option>
++                        </select>
++                        <select value={filters.prioridad} onChange={e => { setFilters({ ...filters, prioridad: e.target.value }); }}>
++                            <option value="">Todas prioridades</option>
++                            <option value="alta">alta</option>
++                            <option value="media">media</option>
++                            <option value="baja">baja</option>
++                        </select>
++                        <button onClick={fetchAll}>Aplicar</button>
++                    </div>
++                </div>
+ 
+-        {error && <div style={{ color: 'crimson', whiteSpace: 'pre-wrap' }}>{error}</div>}
+-      </div>
++                {loading ? (
++                    <div>Cargando tareas...</div>
++                ) : (
++                    <table className="table">
++                        <thead>
++                            <tr>
++                                <th>Título</th>
++                                <th>Estado</th>
++                                <th>Prioridad</th>
++                                <th>Vence</th>
++                                <th>Acciones</th>
++                            </tr>
++                        </thead>
++                        <tbody>
++                            {tareas.map(t => (
++                                <tr key={t.id_tarea}>
++                                    <td>{t.titulo}</td>
++                                    <td>{t.estado}</td>
++                                    <td>{t.prioridad}</td>
++                                    <td>{t.fecha_vencimiento || '-'}</td>
++                                    <td>
++                                        <button onClick={() => startEdit(t)}>Editar</button>
++                                        <button onClick={() => handleDelete(t.id_tarea)} style={{ marginLeft: 8 }}>Eliminar</button>
++                                    </td>
++                                </tr>
++                            ))}
++                        </tbody>
++                    </table>
++                )}
+ 
+-      {/* Estadísticas Section */}
+-      <div className="card">
+-        <h3>Estadísticas</h3>
+-        {stats ? (
+-          <div>
+-            <div style={{ height: 240 }}>
+-              <ResponsiveContainer width="100%" height={220}>
+-                <PieChart>
+-                  <Pie data={[
+-                    { name: 'Pendientes', value: stats.pendientes },
+-                    { name: 'En Progreso', value: stats.en_progreso },
+-                    { name: 'En Espera', value: stats.en_espera },
+-                    { name: 'Completadas', value: stats.completadas }
+-                  ]} dataKey="value" nameKey="name" outerRadius={80}>
+-                    {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (
+-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+-                    ))}
+-                  </Pie>
+-                  <Tooltip />
+-                </PieChart>
+-              </ResponsiveContainer>
++                {error && <div style={{ color: 'crimson', whiteSpace: 'pre-wrap' }}>{error}</div>}
+             </div>
+ 
+-            <h4>Por prioridad</h4>
+-            <ResponsiveContainer width="100%" height={220}>
+-              <BarChart data={[
+-                { name: 'alta', value: stats.por_prioridad.alta },
+-                { name: 'media', value: stats.por_prioridad.media },
+-                { name: 'baja', value: stats.por_prioridad.baja }
+-              ]}>
+-                <XAxis dataKey="name" />
+-                <YAxis />
+-                <Tooltip />
+-                <Bar dataKey="value" />
+-              </BarChart>
+-            </ResponsiveContainer>
++            {/* Estadísticas Section */}
++            <div className="card">
++                <h3>Estadísticas</h3>
++                {stats ? (
++                    <div>
++                        <div style={{ height: 240 }}>
++                            <ResponsiveContainer width="100%" height={220}>
++                                <PieChart>
++                                    <Pie data={[
++                                        { name: 'Pendientes', value: stats.pendientes },
++                                        { name: 'En Progreso', value: stats.en_progreso },
++                                        { name: 'En Espera', value: stats.en_espera },
++                                        { name: 'Completadas', value: stats.completadas }
++                                    ]} dataKey="value" nameKey="name" outerRadius={80}>
++                                        {['Pendientes', 'EnProgreso', 'EnEspera', 'Completadas'].map((k, i) => (
++                                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
++                                        ))}
++                                    </Pie>
++                                    <Tooltip />
++                                </PieChart>
++                            </ResponsiveContainer>
++                        </div>
+ 
+-            <div style={{ marginTop: 12 }}>
+-              <div>Total: {stats.total}</div>
+-              <div>Vencidas: {stats.vencidas}</div>
+-              <div>Hoy: {stats.hoy}</div>
++                        <h4>Por prioridad</h4>
++                        <ResponsiveContainer width="100%" height={220}>
++                            <BarChart data={[
++                                { name: 'alta', value: stats.por_prioridad.alta },
++                                { name: 'media', value: stats.por_prioridad.media },
++                                { name: 'baja', value: stats.por_prioridad.baja }
++                            ]}>
++                                <XAxis dataKey="name" />
++                                <YAxis />
++                                <Tooltip />
++                                <Bar dataKey="value" />
++                            </BarChart>
++                        </ResponsiveContainer>
++
++                        <div style={{ marginTop: 12 }}>
++                            <div>Total: {stats.total}</div>
++                            <div>Vencidas: {stats.vencidas}</div>
++                            <div>Hoy: {stats.hoy}</div>
++                        </div>
++                    </div>
++                ) : (
++                    <div>Cargando estadísticas...</div>
++                )}
+             </div>
+-          </div>
+-        ) : (
+-          <div>Cargando estadísticas...</div>
+-        )}
+-      </div>
+-    </div>
+-  );
+-}
++        </div>
++    );
++}
+\ No newline at end of file
+diff --git a/frontend/src/services/api.jsx b/frontend/src/services/api.jsx
+index 40d6dd1..5dcf10d 100644
+--- a/frontend/src/services/api.jsx
++++ b/frontend/src/services/api.jsx
+@@ -1,53 +1,35 @@
++// frontend/src/services/api.jsx
+ import axios from 'axios';
+-import cfg from './config';
+-import { getToken } from './auth';
+ 
+-// Enable a lightweight mock mode ONLY when VITE_USE_MOCK_API is explicitly set to 'true'.
+-// By default mocks are disabled so the frontend talks to the real backend.
+-const useMock = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE === 'development' && import.meta.env.VITE_USE_MOCK_API === 'true';
+-
+-const api = axios.create({ baseURL: cfg.apiBase, timeout:12000 });
+-
+-// If mock mode is enabled, short-circuit specific requests with canned responses
+-if (useMock) {
+-	const mockAdapter = (mockResponse) => (config) => {
+-		return Promise.resolve({
+-			data: mockResponse,
+-			status: 200,
+-			statusText: 'OK',
+-			headers: {},
+-			config,
+-			request: {}
+-		});
+-	};
+-
+-	api.interceptors.request.use((config) => {
+-		// Only mock GET requests for a small set of public endpoints used on the homepage
+-		try {
+-			const url = (config.url || '').toLowerCase();
+-			if (config.method === 'get') {
+-				if (url.endsWith('/home') || url === '/home' || url.endsWith('/api/home')) {
+-					config.adapter = mockAdapter({ message: 'ok', server: 'mock', version: '1.0' });
+-				}
+-				if (url.endsWith('/tareas/estadisticas') || url.endsWith('/estadisticas') ) {
+-					config.adapter = mockAdapter({ total: 12, completed: 8, pending: 4 });
+-				}
+-			}
+-		} catch (e) {
+-			// ignore
+-		}
+-		return config;
+-	});
+-}
++const api = axios.create({
++	baseURL: '/api',
++	timeout: 10000,
++	headers: {
++		'Content-Type': 'application/json',
++	}
++});
+ 
+-// Use getToken() helper so token access is centralized and avoid issues with timing
+-api.interceptors.request.use((config) => {
+-	const token = getToken();
++// Interceptor para agregar token a las peticiones
++api.interceptors.request.use(config => {
++	const token = localStorage.getItem('synapse_token');
+ 	if (token) {
+-		config.headers = config.headers || {};
+ 		config.headers.Authorization = `Bearer ${token}`;
+ 	}
+ 	return config;
+ });
+ 
+-export default api;
++// Interceptor para manejar respuestas de error
++api.interceptors.response.use(
++	response => response,
++	error => {
++		if (error.response?.status === 401) {
++			// Token expirado o inválido
++			localStorage.removeItem('synapse_token');
++			localStorage.removeItem('synapse_usuario');
++			window.location.href = '/login';
++		}
++		return Promise.reject(error);
++	}
++);
++
++export default api;
+\ No newline at end of file
+diff --git a/frontend/src/services/config.jsx b/frontend/src/services/config.jsx
+index 58f5adc..9b6d751 100644
+--- a/frontend/src/services/config.jsx
++++ b/frontend/src/services/config.jsx
+@@ -1,9 +1,5 @@
+ export default {
+-  // Base URL relativo: usar '/api' permite que Vite proxee las llamadas al backend
+-  // y también hace que el frontend funcione sin tocar el backend en desarrollo/producción.
+   apiBase: '/api',
+-
+-  // Rutas de la API (relativas a apiBase)
+   paths: {
+     // Autenticación
+     login: '/auth/login',
+@@ -11,61 +7,40 @@ export default {
+     logout: '/auth/logout',
+     me: '/auth/me',
+     changePassword: '/auth/change-password',
+-
++    
+     // Usuarios
+     usuarios: '/usuarios',
+     usuarioById: (id) => `/usuarios/${id}`,
+-    searchUsuarios: '/usuarios/search',
+-
++    
+     // Tareas
+     tareas: '/tareas',
+     tareaById: (id) => `/tareas/${id}`,
+-    tareasPorSala: (salaId) => `/tareas/sala/${salaId}`,
+-    estadisticasTareas: '/tareas/estadisticas',
+-
+-    // Sesiones
+-    sesiones: '/sesion',
+-    sesionById: (id) => `/sesion/${id}`,
+-    estadisticasSesiones: '/sesion/estadisticas',
+-
+-    // Salas
+-    salas: '/sala',
+-    salaById: (id) => `/sala/${id}`,
+-    salasPublicas: '/sala/publicas',
+-    unirseSala: (id) => `/sala/${id}/unirse`,
+-    salirSala: (id) => `/sala/${id}/salir`,
+-
+-    // Técnicas
+-    tecnicas: '/tecnica',
+-    tecnicaById: (id) => `/tecnica/${id}`,
+-    tecnicasPopulares: '/tecnica/populares',
+-
++    
++    // Salas y sesiones grupales
++    salas: '/salas',
++    salasPublicas: '/salas/publicas',
++    misSalas: '/salas/mis-salas',
++    unirseSala: '/salas/unirse',
++    sesiones: '/sesiones',
++    
+     // Recompensas
+     recompensas: '/recompensa',
+-    recompensaById: (id) => `/recompensa/${id}`,
+-    misRecompensas: '/recompensa/mis-recompensas',
+     recompensasDisponibles: '/recompensa/disponibles',
++    misRecompensas: '/recompensa/mis-recompensas',
+     otorgarRecompensa: '/recompensa/otorgar',
+-
+-    // Progreso
+-    progresoHoy: '/progreso/hoy',
+-    progresoSemana: '/progreso/semana',
+-    progresoMes: '/progreso/mes',
+-    progresoUsuario: '/progreso/usuario',
+-    estadisticasGenerales: '/progreso/estadisticas',
+-
+-    // Pomodoro (productividad)
+-    pomodoroIniciar: '/productividad/pomodoro/iniciar',
+-    pomodoroFinalizar: '/productividad/pomodoro/finalizar', 
+-    pomodoroEstado: '/productividad/pomodoro/estado',
+-
+-    // Meditación (bienestar)
++    
++    // Meditación y Pomodoro
+     meditacionIniciar: '/bienestar/meditacion/iniciar',
+-    meditacionFinalizar: '/bienestar/meditacion/finalizar', 
++    meditacionFinalizar: '/bienestar/meditacion/finalizar',
+     meditacionHistorial: '/bienestar/meditacion/historial',
++    
++    pomodoroIniciar: '/productividad/pomodoro/iniciar',
++    pomodoroFinalizar: '/productividad/pomodoro/finalizar',
++    pomodoroEstado: '/productividad/pomodoro/estado',
++    
++    // Estadísticas
++    estadisticas: '/estadisticas'
+   },
+-
+-  // Nombres de campos en la respuesta de autenticación
+   tokenField: 'access_token',
+   usuarioField: 'usuario'
+ };
+\ No newline at end of file
+diff --git a/frontend/src/services/meditacion.jsx b/frontend/src/services/meditacion.jsx
+index e596e0d..1e88cd3 100644
+--- a/frontend/src/services/meditacion.jsx
++++ b/frontend/src/services/meditacion.jsx
+@@ -1,18 +1,41 @@
++// frontend/src/services/meditacion.jsx
+ import api from './api';
+-import cfg from './config';
+ 
+-export const iniciar = (data) => {
+-    return api.post(cfg.paths.meditacionIniciar, data).then(res => res.data);
+-};
++const meditacionService = {
++    // Iniciar una nueva sesión de meditación
++    iniciar: async (data) => {
++        try {
++            const response = await api.post('/bienestar/meditacion/iniciar', data);
++            return response.data;
++        } catch (error) {
++            console.error('Error al iniciar meditación:', error);
++            throw error;
++        }
++    },
++
++    // Finalizar una sesión de meditación
++    finalizar: async (data) => {
++        try {
++            const response = await api.post('/bienestar/meditacion/finalizar', data);
++            return response.data;
++        } catch (error) {
++            console.error('Error al finalizar meditación:', error);
++            throw error;
++        }
++    },
+ 
+-export const finalizar = (data) => {
+-    return api.post(cfg.paths.meditacionFinalizar(''), data).then(res => res.data);
+-    // Nota: El backend acepta finalización sin ID en el path, usando el cuerpo o el JWT.
+-    // Si tu backend requiere ID, cambia a:
+-    // return api.post(`/bienestar/meditacion/finalizar/${sessionId}`, data);
++    // Obtener historial de sesiones de meditación del usuario
++    getHistorial: async () => {
++        try {
++            const response = await api.get('/bienestar/meditacion/historial');
++            return Array.isArray(response.data) ? response.data : [];
++        } catch (error) {
++            console.error('Error al obtener historial de meditación:', error);
++            // Retornar un array vacío en caso de error para evitar fallos en la UI
++            return [];
++        }
++    }
+ };
+ 
+-export const getHistorial = async () => {
+-    const res = await api.get(cfg.paths.meditacionHistorial);
+-    return Array.isArray(res.data) ? res.data : [];
+-};
+\ No newline at end of file
++// Exportación por defecto para que funcione con import meditacionService from '...'
++export default meditacionService;
+\ No newline at end of file
+diff --git a/frontend/src/services/sesionGrupal.jsx b/frontend/src/services/sesionGrupal.jsx
+index a11f75c..e4552b1 100644
+--- a/frontend/src/services/sesionGrupal.jsx
++++ b/frontend/src/services/sesionGrupal.jsx
+@@ -1,34 +1,29 @@
+ import api from './api';
+ 
+ const sesionGrupalService = {
+-    // POST /api/sesiones
+-    crearSesion: (data) => {
+-        return api.post('/sesiones', data);
+-    },
+-
+-    // POST /api/sesiones/iniciar
+-    iniciarSesion: (data) => {
+-        return api.post('/sesiones/iniciar', data);
++    // GET /api/salas/publicas
++    getSalasPublicas: () => {
++        return api.get('/salas/publicas').then(res => res.data);
+     },
+ 
+-    // POST /api/sesiones/<id>/finalizar
+-    finalizarSesion: (sesionId, data = {}) => {
+-        return api.post(`/sesiones/${sesionId}/finalizar`, data);
++    // GET /api/salas/mis-salas
++    getMisSalas: () => {
++        return api.get('/salas/mis-salas').then(res => res.data);
+     },
+ 
+-    // GET /api/sesiones
+-    getSesiones: () => {
+-        return api.get('/sesiones');
++    // POST /api/salas
++    crearSala: (data) => {
++        return api.post('/salas', data).then(res => res.data);
+     },
+ 
+-    // GET /api/salas/publicas
+-    getSalasPublicas: () => {
+-        return api.get('/salas/publicas');
++    // POST /api/salas/unirse
++    unirseASala: (data) => {
++        return api.post('/salas/unirse', data).then(res => res.data);
+     },
+ 
+-    // POST /api/salas/unirse
+-    unirseASala: (sala_id, codigo_acceso = null) => {
+-        return api.post('/salas/unirse', { sala_id, codigo_acceso });
++    // POST /api/sesiones
++    iniciarSesionGrupal: (data) => {
++        return api.post('/sesiones', data).then(res => res.data);
+     }
+ };
+ 
+-- 
+2.51.0.windows.1
+
