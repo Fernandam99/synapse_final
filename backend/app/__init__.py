@@ -16,6 +16,8 @@ from .routes.tecnica_routes import tecnica_bp
 from .routes.recompensa_routes import recompensa_bp
 from .routes.progreso_routes import progreso_bp
 from .routes.admin_routes import admin_bp
+from .routes.meditacion import meditacion_bp
+from .routes.pomodoro import pomodoro_bp
 
 # Controllers
 from .controllers.pomodoro_controller import pomodoro_controller
@@ -48,6 +50,8 @@ def create_app(config_name='development'):
     app.register_blueprint(sesion_bp, url_prefix='/api/sesiones')
     app.register_blueprint(tecnica_bp, url_prefix='/api/tecnicas')
     app.register_blueprint(recompensa_bp, url_prefix='/api/recompensas')
+    app.register_blueprint(meditacion_bp, url_prefix='/api/meditacion')
+    app.register_blueprint(pomodoro_bp, url_prefix='/api/pomodoro')
     app.register_blueprint(progreso_bp, url_prefix='/api/progreso')
 
     # Admin

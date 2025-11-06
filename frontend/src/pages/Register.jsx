@@ -1,8 +1,40 @@
+
 import React, { useState } from 'react';
 import api from '../services/api';
 import cfg from '../services/config';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+// === VALIDACIONES IDÉNTICAS AL BACKEND ===
+const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
+
+function validateEmail(email) {
+  return EMAIL_REGEX.test(email.trim());
+}
+
+function validatePassword(password) {
+  if (password.length < 8) return 'err_password_length';
+  if (!/[A-Z]/.test(password)) return 'err_password_uppercase';
+  if (!/[a-z]/.test(password)) return 'err_password_lowercase';
+  if (!/[0-9]/.test(password)) return 'err_password_digit';
+  // Acepta cualquier carácter que NO sea letra ni número
+  if (!/[^a-zA-Z0-9]/.test(password)) return 'err_password_special';
+  return null;
+}
+
+const getErrorMessage = (key, t) => {
+  const messages = {
+    err_password_length: t('err_password_length', 'La contraseña debe tener al menos 8 caracteres'),
+    err_password_uppercase: t('err_password_uppercase', 'La contraseña debe contener al menos una letra mayúscula'),
+    err_password_lowercase: t('err_password_lowercase', 'La contraseña debe contener al menos una letra minúscula'),
+    err_password_digit: t('err_password_digit', 'La contraseña debe contener al menos un número'),
+    err_password_special: t('err_password_special', 'La contraseña debe contener al menos un carácter especial (!@#$%^&*, etc.)'),
+    err_invalid_email: t('err_invalid_email', 'Por favor ingresa un correo válido'),
+    err_name_length: t('err_name_length', 'El nombre debe tener al menos 2 caracteres'),
+    err_password_mismatch: t('err_password_mismatch', 'Las contraseñas no coinciden'),
+  };
+  return messages[key] || key;
+};
 
 export default function Register({ onSuccess, onSwitchMode }) {
   const { t } = useTranslation();
@@ -15,18 +47,11 @@ export default function Register({ onSuccess, onSwitchMode }) {
   const [show, setShow] = useState(false);
   const [show2, setShow2] = useState(false);
 
-  // derived validation state
+  // Validaciones
   const validName = name.trim().length >= 2;
-  const validEmail = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
-  // Match backend password policy: >=8 chars, uppercase, lowercase, digit and special char
-  const validPassword = (() => {
-    if (!password || password.length < 8) return false;
-    if (!/[A-Z]/.test(password)) return false;
-    if (!/[a-z]/.test(password)) return false;
-    if (!/[0-9]/.test(password)) return false;
-    if (!/[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/.test(password)) return false;
-    return true;
-  })();
+  const validEmail = validateEmail(email);
+  const passwordErrorKey = validatePassword(password);
+  const validPassword = !passwordErrorKey;
   const passwordsMatch = password === password2 && password2.length > 0;
   const validations = [validName, validEmail, validPassword, passwordsMatch];
   const progress = Math.round((validations.filter(Boolean).length / validations.length) * 100);
@@ -34,18 +59,22 @@ export default function Register({ onSuccess, onSwitchMode }) {
   const handle = async (e) => {
     e.preventDefault();
     setErr('');
-      if (!name || name.length < 2) return setErr(t('err_name_length', 'El nombre debe tener al menos 2 caracteres'));
-      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return setErr(t('err_invalid_email', 'Por favor ingresa un correo válido'));
-  if (!password || password.length < 8) return setErr(t('err_password_length', 'La contraseña debe tener al menos 8 caracteres, incluir mayúscula, minúscula, número y un carácter especial'));
-      if (password !== password2) return setErr(t('err_password_mismatch', 'Las contraseñas no coinciden'));
+    if (!validName) return setErr(getErrorMessage('err_name_length', t));
+    if (!validEmail) return setErr(getErrorMessage('err_invalid_email', t));
+    if (!validPassword) return setErr(passwordErrors.map(key => getErrorMessage(key, t)).join('\n'));
+    if (!passwordsMatch) return setErr(getErrorMessage('err_password_mismatch', t));
 
     try {
-      // Backend expects fields: username, correo, password
       await api.post(cfg.paths.register, { username: name, correo: email, password });
       if (onSuccess) onSuccess('register');
     } catch (error) {
       console.error(error);
-      setErr(error.response?.data?.error || error.response?.data || error.message);
+      // Mostrar todos los errores del backend si vienen como array
+      if (Array.isArray(error.response?.data?.errors)) {
+        setErr(error.response.data.errors.map(msg => msg).join('\n'));
+      } else {
+        setErr(error.response?.data?.error || error.response?.data || error.message);
+      }
     }
   };
 
@@ -94,7 +123,15 @@ export default function Register({ onSuccess, onSwitchMode }) {
             {show ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
-  {!validPassword && touched.password && <div style={{ color: '#f43f5e', fontSize: 12, marginTop: 6 }}>{t('err_password_length', 'La contraseña debe tener al menos 8 caracteres, incluir mayúscula, minúscula, número y un carácter especial')}</div>}
+        {touched.password && password.length > 0 && (
+          passwordErrorKey ? (
+            <div style={{ color: '#f43f5e', fontSize: 12, marginTop: 6 }}>
+              {getErrorMessage(passwordErrorKey, t)}
+            </div>
+          ) : (
+            <div style={{ color: '#22c55e', fontSize: 12, marginTop: 6 }}>{t('password_valid', 'Contraseña válida y segura')}</div>
+          )
+        )}
 
         <div className="input-wrap" onFocus={() => setTouched(t => ({ ...t, password2: true }))}>
           <span className="input-icon"><Lock size={18} /></span>

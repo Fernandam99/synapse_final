@@ -56,7 +56,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
   // Items de navegación para usuarios normales
   const userNavItems = [
-    { path: '/', label: t('home'), icon: <Home size={18} /> },
+    { path: '/dashboard', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
     { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
@@ -64,8 +64,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
   ];
 
-  // Usar los items correspondientes según el rol
-  const navItems = isAdmin ? adminNavItems : userNavItems;
+  // Seleccionar los items de navegación según el rol del usuario
+  const navItems = user ? (user.rol_id === 1 ? adminNavItems : userNavItems) : [];
 
   const handleProfileMenuMouseLeave = () => {
     setTimeout(() => setOpenProfile(false), 150); 

@@ -8,17 +8,41 @@ const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
 const Concentracion = React.lazy(() => import('./pages/Concentracion'));
 const SalaPage = React.lazy(() => import('./pages/Sala'));
+const Meditacion = React.lazy(() => import('./pages/Meditacion'));
 import PrivateRoute from './components/PrivateRoute'; 
 import PublicRoute from './components/PublicRoute';
 import AuthModal from './components/AuthModal';
 import Loader from './components/loader';
 
+// Componente de protección para rutas de usuario regular
+function UserRoute({ children }) {
+  const user = getUsuario();
+  const location = useLocation();
+  
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  
+  if (user.rol_id === 1) {
+    return <Navigate to="/admin" replace />;
+  }
+  
+  return children;
+};
+
 // Componente de protección para rutas de admin
 function AdminRoute({ children }) {
   const user = getUsuario();
-  if (!user || user.rol_id !== 1) {
+  const location = useLocation();
+  
+  if (!user) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+  
+  if (user.rol_id !== 1) {
     return <Navigate to="/" replace />;
   }
+  
   return children;
 }
 // Load Navbar defensively: some environments may export it differently.
@@ -120,48 +144,52 @@ export default function App(){
 
   return (
     <>
-  <div className="app-debug-banner">APP RENDER OK</div>
-  {/* Fullscreen startup loader */}
-  {loadingApp && (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
-      <Loader size={260} />
-    </div>
-  )}
+      <div className="app-debug-banner">APP RENDER OK</div>
+      {/* Fullscreen startup loader */}
+      {loadingApp && (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
+          <Loader size={260} />
+        </div>
+      )}
 
-  <Suspense fallback={null}>
-    <Navbar user={usuario} onAuthClick={openAuth} onLogout={handleLogout} theme={theme} setTheme={setTheme} />
-  </Suspense>
-  <AuthModal open={authOpen} mode={authMode} onClose={closeAuth} onAuthSuccess={onAuthSuccess} openAuth={openAuth} />
+      <Suspense fallback={null}>
+        <Navbar user={usuario} onAuthClick={openAuth} onLogout={handleLogout} theme={theme} setTheme={setTheme} />
+      </Suspense>
+      
+      <AuthModal open={authOpen} mode={authMode} onClose={closeAuth} onAuthSuccess={onAuthSuccess} openAuth={openAuth} />
 
-  <Suspense fallback={<div style={{padding:20}}>Cargando...</div>}>
-  <Routes>
-        <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-        <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
-  {/* Rutas específicas para administradores */}
-  <Route path="/admin" element={
-    <AdminRoute>
-      <div className="container"><AdminPanel /></div>
-    </AdminRoute>
-  } />
-  <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
-  
-  {/* Rutas solo para usuarios no-admin */}
-  {usuario && usuario.rol_id !== 1 && (
-    <>
-      <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
-      <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
-      <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
-      <Route path="/salas" element={<div className="container"><PrivateRoute><SalaPage/></PrivateRoute></div>} />
-    </>
-  )}
-  
-  {/* Ruta pública */}
-  <Route path="/" element={
-    usuario?.rol_id === 1 ? 
-    <Navigate to="/admin" replace /> : 
-    <div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>
-  } />
-      </Routes>
+      <Suspense fallback={<div style={{padding:20}}>Cargando...</div>}>
+        <Routes>
+          <Route path="/login" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
+          <Route path="/register" element={<div className="container"><PublicRoute><Navigate to="/" replace /></PublicRoute></div>} />
+          
+          {/* Rutas específicas para administradores */}
+          <Route path="/admin" element={
+            <AdminRoute>
+              <div className="container"><AdminPanel /></div>
+            </AdminRoute>
+          } />
+          
+          <Route path="/perfil" element={<div className="container"><PrivateRoute><Profile/></PrivateRoute></div>} />
+          
+          {/* Rutas protegidas por rol */}
+          {usuario?.rol_id !== 1 && (
+            <>
+              <Route path="/dashboard" element={<div className="container"><PrivateRoute><Dashboard/></PrivateRoute></div>} />
+              <Route path="/concentracion" element={<div className="container"><PrivateRoute><Concentracion/></PrivateRoute></div>} />
+              <Route path="/meditacion" element={<div className="container"><PrivateRoute><Meditacion/></PrivateRoute></div>} />
+              <Route path="/config" element={<div className="container"><PrivateRoute><Profile defaultTab="settings"/></PrivateRoute></div>} />
+              <Route path="/salas" element={<div className="container"><PrivateRoute><SalaPage/></PrivateRoute></div>} />
+            </>
+          )}
+          
+          {/* Ruta pública */}
+          <Route path="/" element={
+            usuario?.rol_id === 1 ? 
+            <Navigate to="/admin" replace /> : 
+            <div className="container container-full"><PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute></div>
+          } />
+        </Routes>
       </Suspense>
       <Footer />
     </>
