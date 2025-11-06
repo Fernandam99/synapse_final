@@ -1,9 +1,5 @@
 export default {
-  // Base URL relativo: usar '/api' permite que Vite proxee las llamadas al backend
-  // y también hace que el frontend funcione sin tocar el backend en desarrollo/producción.
   apiBase: '/api',
-
-  // Rutas de la API (relativas a apiBase)
   paths: {
     // Autenticación
     login: '/auth/login',
@@ -11,61 +7,40 @@ export default {
     logout: '/auth/logout',
     me: '/auth/me',
     changePassword: '/auth/change-password',
-
+    
     // Usuarios
     usuarios: '/usuarios',
     usuarioById: (id) => `/usuarios/${id}`,
-    searchUsuarios: '/usuarios/search',
-
+    
     // Tareas
     tareas: '/tareas',
     tareaById: (id) => `/tareas/${id}`,
-    tareasPorSala: (salaId) => `/tareas/sala/${salaId}`,
-    estadisticasTareas: '/tareas/estadisticas',
-
-    // Sesiones
-    sesiones: '/sesion',
-    sesionById: (id) => `/sesion/${id}`,
-    estadisticasSesiones: '/sesion/estadisticas',
-
-    // Salas
-    salas: '/sala',
-    salaById: (id) => `/sala/${id}`,
-    salasPublicas: '/sala/publicas',
-    unirseSala: (id) => `/sala/${id}/unirse`,
-    salirSala: (id) => `/sala/${id}/salir`,
-
-    // Técnicas
-    tecnicas: '/tecnica',
-    tecnicaById: (id) => `/tecnica/${id}`,
-    tecnicasPopulares: '/tecnica/populares',
-
+    
+    // Salas y sesiones grupales
+    salas: '/salas',
+    salasPublicas: '/salas/publicas',
+    misSalas: '/salas/mis-salas',
+    unirseSala: '/salas/unirse',
+    sesiones: '/sesiones',
+    
     // Recompensas
     recompensas: '/recompensa',
-    recompensaById: (id) => `/recompensa/${id}`,
-    misRecompensas: '/recompensa/mis-recompensas',
     recompensasDisponibles: '/recompensa/disponibles',
+    misRecompensas: '/recompensa/mis-recompensas',
     otorgarRecompensa: '/recompensa/otorgar',
-
-    // Progreso
-    progresoHoy: '/progreso/hoy',
-    progresoSemana: '/progreso/semana',
-    progresoMes: '/progreso/mes',
-    progresoUsuario: '/progreso/usuario',
-    estadisticasGenerales: '/progreso/estadisticas',
-
-    // Pomodoro (productividad)
-    pomodoroIniciar: '/productividad/pomodoro/iniciar',
-    pomodoroFinalizar: '/productividad/pomodoro/finalizar', 
-    pomodoroEstado: '/productividad/pomodoro/estado',
-
-    // Meditación (bienestar)
+    
+    // Meditación y Pomodoro
     meditacionIniciar: '/bienestar/meditacion/iniciar',
-    meditacionFinalizar: '/bienestar/meditacion/finalizar', 
+    meditacionFinalizar: '/bienestar/meditacion/finalizar',
     meditacionHistorial: '/bienestar/meditacion/historial',
+    
+    pomodoroIniciar: '/productividad/pomodoro/iniciar',
+    pomodoroFinalizar: '/productividad/pomodoro/finalizar',
+    pomodoroEstado: '/productividad/pomodoro/estado',
+    
+    // Estadísticas
+    estadisticas: '/estadisticas'
   },
-
-  // Nombres de campos en la respuesta de autenticación
   tokenField: 'access_token',
   usuarioField: 'usuario'
 };

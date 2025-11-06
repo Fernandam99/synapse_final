@@ -1,11 +1,10 @@
+// frontend/src/App.jsx
 import React, { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import ErrorBoundary from './ErrorBoundary';
-
-// Importar loader directamente (no dinámicamente) - ES CRÍTICO
 import Loader from './components/loader';
 
-// Función para importar componentes de forma segura
+// Importar componentes con manejo seguro de errores
 const safeLazy = (importFn, fallback = null) => {
   return React.lazy(() => 
     importFn().catch(err => {
@@ -29,17 +28,22 @@ const safeLazy = (importFn, fallback = null) => {
   );
 };
 
-// Importar componentes usando safeLazy
+// Componentes principales
 const Login = safeLazy(() => import('./pages/Login'));
 const Register = safeLazy(() => import('./pages/Register'));
 const Dashboard = safeLazy(() => import('./pages/Dashboard'));
 const HomePage = safeLazy(() => import('./pages/HomePage'));
+const HomePageLogueado = safeLazy(() => import('./pages/HomePageLogueado'));
 const Profile = safeLazy(() => import('./pages/Profile'));
 const Meditacion = safeLazy(() => import('./pages/Meditacion'));
 const Pomodoro = safeLazy(() => import('./pages/Pomodoro'));
+const Recompensas = safeLazy(() => import('./pages/Recompensas'));
+const SesionGrupal = safeLazy(() => import('./pages/SesionGrupal'));
+const Tareas = safeLazy(() => import('./pages/Tareas'));
+const SesionesTareas = safeLazy(() => import('./pages/SesionesTareas'));
 const AdminPanel = safeLazy(() => import('./pages/AdminPanel'));
 
-// Importar componentes comunes
+// Componentes comunes
 const Navbar = safeLazy(() => import('./components/Navbar'));
 const Footer = safeLazy(() => import('./components/Footer'));
 const AuthModal = safeLazy(() => import('./components/AuthModal'));
@@ -55,7 +59,7 @@ export default function App() {
   const [loadingApp, setLoadingApp] = useState(true);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('login');
-  const [usuario, setUsuario] = useState(getUsuario());
+  const [usuario, setUsuario] = useState(null);
   const [theme, setTheme] = useState(() => {
     try {
       return window.localStorage.getItem('theme') || 'light';
@@ -81,9 +85,8 @@ export default function App() {
       if (isMounted) {
         setLoadingApp(false);
       }
-    }, 1000); // Tiempo máximo de espera para el loader
+    }, 1000);
 
-    // Forzar finalización del loader después de 3 segundos como máximo
     const timeoutFallback = setTimeout(() => {
       if (isMounted) {
         console.warn('Tiempo de carga excedido, forzando renderizado');
@@ -125,9 +128,17 @@ export default function App() {
       setAuthOpen(true);
       return;
     }
+    
     closeAuth();
-    setUsuario(getUsuario());
-    nav('/dashboard', { replace: true });
+    const user = getUsuario();
+    setUsuario(user);
+    
+    // Si es login exitoso, redirigir a página de bienvenida
+    if (fromMode === 'login') {
+      nav('/bienvenida', { replace: true });
+    } else {
+      nav('/dashboard', { replace: true });
+    }
   };
 
   // Verificación periódica de autenticación
@@ -229,6 +240,11 @@ export default function App() {
                 <Route path="/register" element={<Navigate to="/" replace />} />
                 
                 {/* Páginas privadas */}
+                <Route path="/bienvenida" element={
+                  <PrivateRoute>
+                    <HomePageLogueado />
+                  </PrivateRoute>
+                } />
                 <Route path="/dashboard" element={
                   <PrivateRoute>
                     <Dashboard />
@@ -249,13 +265,34 @@ export default function App() {
                     <Pomodoro />
                   </PrivateRoute>
                 } />
-                
-                {/* Admin */}
+                <Route path="/recompensas" element={
+                  <PrivateRoute>
+                    <Recompensas />
+                  </PrivateRoute>
+                } />
+                <Route path="/sesion-grupal" element={
+                  <PrivateRoute>
+                    <SesionGrupal />
+                  </PrivateRoute>
+                } />
+                <Route path="/tareas" element={
+                  <PrivateRoute>
+                    <Tareas />
+                  </PrivateRoute>
+                } />
+                <Route path="/sesiones-tareas" element={
+                  <PrivateRoute>
+                    <SesionesTareas />
+                  </PrivateRoute>
+                } />
                 <Route path="/admin" element={
                   <PrivateRoute>
                     <AdminPanel />
                   </PrivateRoute>
                 } />
+                
+                {/* Redirección por defecto para usuarios logueados */}
+                <Route path="/home" element={<Navigate to="/bienvenida" replace />} />
                 
                 {/* Ruta no encontrada */}
                 <Route path="*" element={

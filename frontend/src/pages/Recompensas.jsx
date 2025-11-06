@@ -1,347 +1,329 @@
+// frontend/src/pages/Recompensas.jsx
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Droplet, Star, Play, RotateCcw, TrendingUp, BarChart3 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import './styles/Concentracion.css';
-import api from '../services/api';
+import { Star, Gift, CheckCircle, Trophy, Box, Award, Crown, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import api from '../services/api';
 
-const ConcentrationApp = () => {
-  const [activeTab, setActiveTab] = useState('active');
-  const [timer, setTimer] = useState(1500); // 25 minutos en segundos
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState([]);
-  const [stats, setStats] = useState({
-    weekMinutes: 127,
-    completedSessions: 23,
-    streak: 7,
-    effectiveness: 89
-  });
-  const [progressData, setProgressData] = useState([
-    { day: 'Lun', minutes: 75 },
-    { day: 'Mar', minutes: 110 },
-    { day: 'Mié', minutes: 70 },
-    { day: 'Jun', minutes: 95 },
-    { day: 'Vie', minutes: 120 },
-    { day: 'Sáb', minutes: 85 },
-    { day: 'Dom', minutes: 55 }
-  ]);
-  const [monthlyData, setMonthlyData] = useState([
-    { week: 'Sem 1', minutes: 380 },
-    { week: 'Sem 2', minutes: 450 },
-    { week: 'Sem 3', minutes: 350 },
-    { week: 'Sem 4', minutes: 500 }
-  ]);
-
-  // Defensive normalization: si por alguna razón `sessions` deja de ser un array
-  // (por una respuesta inesperada de la API o por sobrescritura accidental),
-  // forzamos a que sea un array vacío y lo registramos para debug.
-  useEffect(() => {
-    if (!Array.isArray(sessions)) {
-      console.warn('ConcentrationApp: `sessions` expected array but got:', sessions);
-      setSessions([]);
-    }
-  }, [sessions]);
-
-  // Fetch data from API
-  useEffect(() => {
-    fetchStats();
-    fetchSessions();
-  }, []);
-
-  // Timer countdown
-  useEffect(() => {
-    let interval = null;
-    if (isRunning && timer > 0) {
-      interval = setInterval(() => {
-        setTimer(t => t - 1);
-      }, 1000);
-    } else if (timer === 0) {
-      completeSession();
-    }
-    return () => clearInterval(interval);
-  }, [isRunning, timer]);
-
-  const fetchStats = async () => {
-    try {
-      const res = await api.get('/sesiones/estadisticas');
-      setStats(res.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  const fetchSessions = async () => {
-    try {
-      const res = await api.get('/sesiones');
-      const data = res.data;
-      // Normalizar la respuesta: la API puede devolver un array o un objeto con sessions
-      if (Array.isArray(data)) {
-        setSessions(data);
-      } else if (data && Array.isArray(data.sessions)) {
-        setSessions(data.sessions);
-      } else {
-        setSessions([]);
-      }
-    } catch (error) {
-      console.error('Error fetching sessions:', error);
-      setSessions([]);
-    }
-  };
-
-  const startTimer = () => setIsRunning(true);
-  const resetTimer = () => {
-    setIsRunning(false);
-    setTimer(1500);
-  };
-
-  const completeSession = async () => {
-    setIsRunning(false);
-    const sessionData = {
-      technique: 'Pomodoro Clásico',
-      duration: 25,
-      effectiveness: Math.floor(Math.random() * 20) + 80,
-      completed: true
-    };
-    
-    try {
-      await api.post('/sesiones', sessionData);
-      fetchStats();
-      fetchSessions();
-    } catch (error) {
-      console.error('Error saving session:', error);
-    }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
+const Recompensas = () => {
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState('available');
+  const [recompensas, setRecompensas] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [consuming, setConsuming] = useState(null);
+  const [stats, setStats] = useState({
+    total: 0,
+    consumidas: 0,
+    puntos: 0
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (activeTab === 'available') {
+          const res = await api.get('/recompensa/disponibles');
+          setRecompensas(Array.isArray(res.data) ? res.data : []);
+        } else {
+          const res = await api.get('/recompensa/mis-recompensas');
+          const data = Array.isArray(res.data) ? res.data : res.data.recompensas || [];
+          
+          // Calcular estadísticas
+          const total = data.length;
+          const consumidas = data.filter(r => r.consumida).length;
+          const puntos = data.reduce((sum, r) => sum + (r.valor || 0), 0);
+          
+          setRecompensas(data);
+          setStats({ total, consumidas, puntos });
+        }
+      } catch (err) {
+        console.error('Error al cargar recompensas:', err);
+        setError(err.response?.data?.error || 'Error al cargar las recompensas');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [activeTab]);
+
+  const consumirRecompensa = async (recompensaId) => {
+    if (!recompensaId || consuming) return;
+    
+    setConsuming(recompensaId);
+    try {
+      await api.patch('/recompensa/otorgar', {
+        recompensa_id: recompensaId
+      });
+      
+      // Actualizar datos después de consumir
+      if (activeTab === 'owned') {
+        fetchData();
+      } else {
+        setActiveTab('owned');
+      }
+    } catch (err) {
+      console.error('Error al consumir recompensa:', err);
+      setError('No se pudo consumir la recompensa');
+    } finally {
+      setConsuming(null);
+    }
+  };
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (activeTab === 'available') {
+        const res = await api.get('/recompensa/disponibles');
+        setRecompensas(Array.isArray(res.data) ? res.data : []);
+      } else {
+        const res = await api.get('/recompensa/mis-recompensas');
+        const data = Array.isArray(res.data) ? res.data : res.data.recompensas || [];
+        
+        // Calcular estadísticas
+        const total = data.length;
+        const consumidas = data.filter(r => r.consumida).length;
+        const puntos = data.reduce((sum, r) => sum + (r.valor || 0), 0);
+        
+        setRecompensas(data);
+        setStats({ total, consumidas, puntos });
+      }
+    } catch (err) {
+      console.error('Error al cargar recompensas:', err);
+      setError(err.response?.data?.error || 'Error al cargar las recompensas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getIcon = (tipo) => {
+    switch (tipo) {
+      case 'personalizacion':
+        return <Box size={20} />;
+      case 'tecnica':
+        return <Trophy size={20} />;
+      case 'puntos':
+      default:
+        return <Star size={20} />;
+    }
+  };
+
+  const getColorClass = (valor) => {
+    if (valor <= 25) return 'bg-purple-100 text-purple-800';
+    if (valor <= 50) return 'bg-blue-100 text-blue-800';
+    if (valor <= 75) return 'bg-teal-100 text-teal-800';
+    return 'bg-amber-100 text-amber-800';
+  };
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-50 text-red-700 p-4 rounded-lg mb-6">
+          {error}
+        </div>
+        <button 
+          onClick={fetchData} 
+          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="concentration-app">
-      <div className="container">
-        {/* Header */}
-        <div className="header">
-          <h1 className="header-title">{t('concentration')}</h1>
-          <p className="header-subtitle">{t('concentration_subtitle', 'Fortalece tu capacidad de atención con técnicas científicamente probadas')}</p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="stats-grid">
-            <div className="stat-card">
-            <div className="stat-icon purple"><Clock /></div>
-            <div className="stat-value">{stats.weekMinutes}min</div>
-            <div className="stat-label">{t('this_week', 'Esta semana')}</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon pink"><Calendar /></div>
-            <div className="stat-value">{stats.completedSessions}</div>
-            <div className="stat-label">Sesiones completadas</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon blue"><Droplet /></div>
-            <div className="stat-value">{stats.streak}</div>
-            <div className="stat-label">Días consecutivos</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon purple"><Star /></div>
-            <div className="stat-value">{stats.effectiveness}%</div>
-            <div className="stat-label">Efectividad</div>
-          </div>
-        </div>
-
-        <div className="tabs-container">
-          <div className="tabs-header">
-            <button className={`tab-button ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>{t('session_active', 'Sesión Activa')}</button>
-            <button className={`tab-button ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>{t('my_progress', 'Mi Progreso')}</button>
-            <button className={`tab-button ${activeTab === 'history' ? 'active' : ''}`} onClick={() => setActiveTab('history')}>{t('history', 'Historial')}</button>
-          </div>
-
-          <div className="tabs-content">
-            {activeTab === 'active' && (
-              <div className="session-active">
-                <h2 className="session-title">Pomodoro Clásico</h2>
-                <p className="session-subtitle">Mantén tu concentración durante 25 minutos</p>
-
-                <div className={`timer-circle ${isRunning ? 'active' : ''}`}>
-                  <div className="timer-time">{formatTime(timer)}</div>
-                  <div className="timer-label">{t('concentration')}</div>
-                  <div className="timer-session">Sesión 1</div>
-                </div>
-
-                <div className="session-stats">
-                  <div className="session-stat-item">
-                    <div className="session-stat-value">{Array.isArray(sessions) ? sessions.filter(s => s.completed).length : 0}</div>
-                    <div className="session-stat-label">Completadas</div>
-                  </div>
-                  <div className="session-stat-item">
-                    <div className="session-stat-value">{Math.floor(stats.weekMinutes/60)}h {stats.weekMinutes%60}m</div>
-                    <div className="session-stat-label">Tiempo total</div>
-                  </div>
-                </div>
-
-                <div className="button-group">
-                    <button onClick={startTimer} disabled={isRunning} className="button button-primary"><Play /> {t('start', 'Iniciar')}</button>
-                  <button onClick={resetTimer} className="button button-secondary"><RotateCcw /> {t('reset', 'Reiniciar')}</button>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'progress' && (
-              <div>
-                <div className="progress-grid">
-                  <div className="progress-card purple">
-                    <Calendar />
-                    <div className="progress-card-value">31</div>
-                    <div className="progress-card-label">Días mes</div>
-                    <div className="progress-card-change">↑ 72.5% vs mes anterior</div>
-                  </div>
-                  <div className="progress-card pink">
-                    <Clock />
-                    <div className="progress-card-value">18.5h</div>
-                    <div className="progress-card-label">Tiempo total</div>
-                    <div className="progress-card-change">↑ 118% vs mes anterior</div>
-                  </div>
-                  <div className="progress-card purple">
-                    <TrendingUp />
-                    <div className="progress-card-value">91%</div>
-                    <div className="progress-card-label">Promedio mensual</div>
-                    <div className="progress-card-change">↑ 8% vs mes anterior</div>
-                  </div>
-                </div>
-
-                <div className="chart-container">
-                  <h3 className="chart-title">Progreso Semanal</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <LineChart data={progressData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="day" stroke="#666" />
-                      <YAxis stroke="#666" />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="minutes" stroke="#9333ea" strokeWidth={3} dot={{ fill: '#9333ea', r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                <div className="charts-grid">
-                  <div>
-                    <h3 className="chart-title">Tendencia Mensual</h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                      <BarChart data={monthlyData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis dataKey="week" stroke="#666" />
-                        <YAxis stroke="#666" />
-                        <Tooltip />
-                        <Bar dataKey="minutes" fill="#ec4899" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div>
-                    <h3 className="chart-title">Técnicas Más Usadas</h3>
-                    <div className="techniques-list">
-                      <div className="technique-item">
-                        <div className="technique-header">
-                          <div className="technique-name">Pomodoro Clásico</div>
-                          <div className="technique-percentage">68%</div>
-                        </div>
-                        <div className="progress-bar-container"><div className="progress-bar purple" style={{width: '68%'}}></div></div>
-                      </div>
-                      <div className="technique-item">
-                        <div className="technique-header">
-                          <div className="technique-name">Concentración Profunda</div>
-                          <div className="technique-percentage">24%</div>
-                        </div>
-                        <div className="progress-bar-container"><div className="progress-bar pink" style={{width: '24%'}}></div></div>
-                      </div>
-                      <div className="technique-item">
-                        <div className="technique-header">
-                          <div className="technique-name">Sprints Rápidos</div>
-                          <div className="technique-percentage">8%</div>
-                        </div>
-                        <div className="progress-bar-container"><div className="progress-bar light-purple" style={{width: '8%'}}></div></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="insights-card">
-                  <div className="insights-content">
-                    <div className="insights-icon"><BarChart3 /></div>
-                    <div className="insights-body">
-                      <div className="insights-title">Análisis Inteligente</div>
-                      <div className="insights-text">Tu rendimiento ha mejorado un 15% esta semana. Los viernes son tus días más productivos, con un promedio de 140 minutos de concentración efectiva.</div>
-                      <div className="insights-tags">
-                        <span className="insights-tag">Constancia excelente</span>
-                        <span className="insights-tag">Técnica favorita: Pomodoro</span>
-                        <span className="insights-tag">Mejor horario: 10-12h</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'history' && (
-              <div>
-                <div className="history-filters">
-                  <label className="filter-label">Técnica:</label>
-                  <select className="filter-select">
-                    <option>Todas las técnicas</option>
-                    <option>Pomodoro Clásico</option>
-                    <option>Concentración Profunda</option>
-                    <option>Sprints Rápidos</option>
-                  </select>
-                </div>
-
-                <div className="history-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Fecha</th>
-                        <th>Técnica</th>
-                        <th>Duración</th>
-                        <th>Estado</th>
-                        <th>Efectividad</th>
-                        <th>Notas</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="history-date">14 ene 2024<br/><span className="history-time">14:15</span></td>
-                        <td><span className="badge-blue">Concentración Profunda</span></td>
-                        <td>45 min</td>
-                        <td><span className="badge-green">Completada</span></td>
-                        <td>
-                          <div className="effectiveness-bar">
-                            <div className="effectiveness-bar-container"><div className="effectiveness-bar-fill" style={{width: '95%'}}></div></div>
-                            <div className="effectiveness-value">95%</div>
-                          </div>
-                        </td>
-                        <td>Trabajo muy productivo</td>
-                      </tr>
-                      {/* Más filas de ejemplo... */}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="pagination">
-                  <div className="pagination-info">Página 1 de 2</div>
-                  <div className="pagination-buttons">
-                    <button className="pagination-button">Anterior</button>
-                    <button className="pagination-button">Siguiente</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('rewards')}</h1>
+        <p className="text-gray-500">{t('rewards_subtitle')}</p>
       </div>
+      
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('available')}
+            className={`${
+              activeTab === 'available'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+          >
+            <Star className="mr-2" size={16} />
+            {t('available')}
+          </button>
+          <button
+            onClick={() => setActiveTab('owned')}
+            className={`${
+              activeTab === 'owned'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+          >
+            <Gift className="mr-2" size={16} />
+            {t('owned')}
+          </button>
+        </nav>
+      </div>
+      
+      {/* Stats para recompensas obtenidas */}
+      {activeTab === 'owned' && !loading && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
+            <div className="flex items-center">
+              <Star className="text-indigo-500 mr-2" size={20} />
+              <div>
+                <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+                <div className="text-sm text-gray-500">{t('total_rewards')}</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
+            <div className="flex items-center">
+              <CheckCircle className="text-green-500 mr-2" size={20} />
+              <div>
+                <div className="text-2xl font-bold text-gray-800">{stats.consumidas}</div>
+                <div className="text-sm text-gray-500">{t('consumed_rewards')}</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-4 border border-gray-100">
+            <div className="flex items-center">
+              <Trophy className="text-amber-500 mr-2" size={20} />
+              <div>
+                <div className="text-2xl font-bold text-gray-800">{stats.puntos}</div>
+                <div className="text-sm text-gray-500">{t('total_points')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Contenido */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-100 animate-pulse">
+              <div className="p-6">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg"></div>
+                  <div className="flex-1 space-y-4">
+                    <div className="h-5 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    <div className="h-10 bg-gray-200 rounded-lg"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : recompensas.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-xl">
+          <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+            <Star className="text-indigo-600" size={28} />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-1">
+            {activeTab === 'available' 
+              ? t('no_available_rewards') 
+              : t('no_owned_rewards')}
+          </h3>
+          <p className="text-gray-500 max-w-md mx-auto">
+            {activeTab === 'available'
+              ? t('available_rewards_desc')
+              : t('owned_rewards_desc')}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {recompensas.map((recompensa) => {
+            const isOwned = activeTab === 'owned';
+            const isConsumed = isOwned && recompensa.consumida;
+            const isLoading = consuming === recompensa.id_recompensa;
+            
+            return (
+              <div 
+                key={recompensa.id_recompensa}
+                className={`bg-white rounded-xl shadow-md overflow-hidden border ${
+                  isConsumed ? 'border-green-200' : 'border-gray-100'
+                } hover:shadow-lg transition-all`}
+              >
+                <div className="p-6">
+                  <div className="flex items-start space-x-4">
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center ${
+                      isConsumed ? 'bg-green-100' : getColorClass(recompensa.valor)
+                    }`}>
+                      {getIcon(recompensa.tipo)}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-lg font-semibold text-gray-800">{recompensa.nombre}</h3>
+                        {isConsumed && (
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <CheckCircle className="mr-1" size={12} />
+                            {t('consumed')}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p className="mt-1 text-gray-600 text-sm line-clamp-2">
+                        {recompensa.descripcion}
+                      </p>
+                      
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center text-amber-500">
+                            <Star className="mr-1" size={16} />
+                            <span className="font-medium">{recompensa.valor}</span>
+                          </div>
+                          
+                          {recompensa.nivel && (
+                            <div className="flex items-center text-indigo-600">
+                              <Crown className="mr-1" size={16} />
+                              <span className="text-xs font-medium">{recompensa.nivel}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {isOwned && !isConsumed ? (
+                          <button
+                            onClick={() => consumirRecompensa(recompensa.id_recompensa)}
+                            disabled={isLoading}
+                            className={`${
+                              isLoading 
+                                ? 'bg-gray-300 cursor-not-allowed' 
+                                : 'bg-indigo-600 hover:bg-indigo-700'
+                            } inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+                          >
+                            {isLoading ? (
+                              <Loader className="animate-spin mr-2" size={16} />
+                            ) : (
+                              <Gift className="mr-2" size={16} />
+                            )}
+                            {t('consume')}
+                          </button>
+                        ) : !isOwned && (
+                          <div className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            {t('requirements')}:
+                            {Object.entries(recompensa.requisitos || {}).map(([key, value]) => (
+                              <span key={key} className="ml-1">{value} {key.replace('_', ' ')}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
 
-export default ConcentrationApp;
-
+export default Recompensas;

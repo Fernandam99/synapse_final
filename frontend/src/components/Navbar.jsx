@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
+import { Home, LayoutDashboard, Brain, Clock, Users, Calendar, Star, Shield, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
@@ -47,12 +47,15 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
   const navItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
-    { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
-    { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
-    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
+    { path: '/dashboard', label: t('dashboard'), icon: <LayoutDashboard size={18} />, requiresAuth: true },
+    { path: '/pomodoro', label: t('pomodoro'), icon: <Clock size={18} />, requiresAuth: true },
+    { path: '/meditacion', label: t('meditation'), icon: <Brain size={18} />, requiresAuth: true },
+    { path: '/sesion-grupal', label: t('group_session'), icon: <Users size={18} />, requiresAuth: true },
+    { path: '/tareas', label: t('tasks'), icon: <Calendar size={18} />, requiresAuth: true },
+    { path: '/recompensas', label: t('rewards'), icon: <Star size={18} />, requiresAuth: true },
+    { path: '/admin', label: t('admin'), icon: <Shield size={18} />, requiresAuth: true, adminOnly: true },
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
-  ];
+  ].filter(item => !item.adminOnly || (user?.rol_id === 1)); // Mostrar panel de admin solo para administradores
 
   const handleProfileMenuMouseLeave = () => {
     setTimeout(() => setOpenProfile(false), 150); 
@@ -95,6 +98,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
         <nav>
           <ul className="sidebar-menu">
             {navItems.map(item => {
+              if (item.requiresAuth && !user) return null;
+              
               const isActive = location.pathname === item.path;
               return (
                 <li key={item.path}>
@@ -209,60 +214,63 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
       {/* Mobile menu dropdown shown when hamburger is open */}
       <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`} aria-hidden={!isMenuOpen}>
-  <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
-          <div className="mobile-menu-header">
-            <div className="mobile-selectors-top">
-              <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
-              <LanguageSelector currentLng={i18n.language} compact={true} />
-            </div>
-            <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
-              <X size={18} />
-            </button>
-          </div>
-
-          <nav className="mobile-nav">
-            <ul>
-              {navItems.map(item => (
-                <li key={`mobile-${item.path}`}>
-                  <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
-                    <span className="link-icon">{item.icon}</span>
-                    <span className="link-label">{item.label}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          <div className="mobile-actions">
-            {!user ? (
-              <>
-                <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
-                  <LogIn size={16} />
-                  <span>{t('login')}</span>
+      <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
+              <div className="mobile-menu-header">
+                <div className="mobile-selectors-top">
+                  <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
+                  <LanguageSelector currentLng={i18n.language} compact={true} />
+                </div>
+                <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
+                  <X size={18} />
                 </button>
-                <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
-                  <UserPlus size={16} />
-                  <span>{t('register')}</span>
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
-                  <User size={16} />
-                  <span>{t('my_account')}</span>
-                </Link>
-                <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
-                  <User size={16} />
-                  <span>{t('logout')}</span>
-                </button>
-              </>
-            )}
-          </div>
+              </div>
 
-          <div className="mobile-footer">
-            <small>{t('welcome')}</small>
-          </div>
-        </div>
+              <nav className="mobile-nav">
+                <ul>
+                  {navItems.map(item => {
+                    if (item.requiresAuth && !user) return null;
+                    return (
+                      <li key={`mobile-${item.path}`}>
+                        <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
+                          <span className="link-icon">{item.icon}</span>
+                          <span className="link-label">{item.label}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </nav>
+
+              <div className="mobile-actions">
+                {!user ? (
+                  <>
+                    <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
+                      <LogIn size={16} />
+                      <span>{t('login')}</span>
+                    </button>
+                    <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
+                      <UserPlus size={16} />
+                      <span>{t('register')}</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
+                      <User size={16} />
+                      <span>{t('my_account')}</span>
+                    </Link>
+                    <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
+                      <User size={16} />
+                      <span>{t('logout')}</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="mobile-footer">
+                <small>{t('welcome')}</small>
+              </div>
+            </div>
       </div>
 
 
@@ -288,42 +296,42 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
           overflow: visible; /* Mantener visible para el menú desplegable */
         }
 
-  /* hide hamburger and mobile menu by default (visible only on small screens) */
-  .hamburger-wrap { display: none; }
-  .hamburger-btn { display: none; }
+        /* hide hamburger and mobile menu by default (visible only on small screens) */
+        .hamburger-wrap { display: none; }
+        .hamburger-btn { display: none; }
         .mobile-menu { display: none; }
 
         .sidebar.expanded { width: 220px; padding-left: 1rem; padding-right: 1rem; }
-  .sidebar .nav-logo { display:flex; align-items:center; gap:0.65rem; text-decoration:none; }
-  .sidebar .logo-img { width:36px; height:36px; object-fit:contain; border-radius:6px; }
+        .sidebar .nav-logo { display:flex; align-items:center; gap:0.65rem; text-decoration:none; }
+        .sidebar .logo-img { width:36px; height:36px; object-fit:contain; border-radius:6px; }
           .sidebar-top { display:flex; align-items:center; justify-content:space-between; position: relative; }
-  .sidebar .logo-text { font-weight:800; color: #111827; font-size:0.95rem; }
-  /* hide logo text when collapsed */
-  .sidebar.collapsed .logo-text { display: none; }
+        .sidebar .logo-text { font-weight:800; color: #111827; font-size:0.95rem; }
+        /* hide logo text when collapsed */
+        .sidebar.collapsed .logo-text { display: none; }
 
-  .sidebar-menu { list-style:none; padding:0; margin: 0.75rem 0; display:flex; flex-direction:column; gap:0.5rem; }
-  .sidebar-link { display:flex; align-items:center; gap:0.75rem; color: #111827; text-decoration:none; padding:0.5rem 0.6rem; border-radius:10px; font-weight:600; transition: all 0.18s ease; outline: none; }
-  .sidebar-link .link-icon { display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; color: #111827; }
-  .sidebar-link .link-label { color: #111827; }
-  /* Hide labels when collapsed */
-  .sidebar.collapsed .link-label { display: none; }
-  .sidebar.expanded .link-label { display: inline-block; }
-  .sidebar-link:hover, .sidebar-link:focus, .sidebar-link:active { background: rgba(0,0,0,0.04); color:#111827; transform: none; outline: none; }
-  .sidebar-link.active { background: transparent; color: #ffffff; }
-  .sidebar-link.active { background: rgba(0,0,0,0.06); }
-  .sidebar-link.active .link-icon { color: #111827; }
+        .sidebar-menu { list-style:none; padding:0; margin: 0.75rem 0; display:flex; flex-direction:column; gap:0.5rem; }
+        .sidebar-link { display:flex; align-items:center; gap:0.75rem; color: #111827; text-decoration:none; padding:0.5rem 0.6rem; border-radius:10px; font-weight:600; transition: all 0.18s ease; outline: none; }
+        .sidebar-link .link-icon { display:inline-flex; width:28px; height:28px; align-items:center; justify-content:center; color: #111827; }
+        .sidebar-link .link-label { color: #111827; }
+        /* Hide labels when collapsed */
+        .sidebar.collapsed .link-label { display: none; }
+        .sidebar.expanded .link-label { display: inline-block; }
+        .sidebar-link:hover, .sidebar-link:focus, .sidebar-link:active { background: rgba(0,0,0,0.04); color:#111827; transform: none; outline: none; }
+        .sidebar-link.active { background: transparent; color: #ffffff; }
+        .sidebar-link.active { background: rgba(0,0,0,0.06); }
+        .sidebar-link.active .link-icon { color: #111827; }
 
-  .sidebar-bottom { display:flex; flex-direction:column; gap:0.5rem; }
-  .btn-login { background:transparent; border:1px solid transparent; color:#111827; padding:0.5rem; text-align:left; cursor:pointer; border-radius:8px; display:flex; align-items:center; gap:0.5rem; }
-  .btn-login:hover { background: rgba(0,0,0,0.04); }
-  .btn-register { background: linear-gradient(90deg,#7c3aed,#667eea); color:white; border:none; padding:0.55rem 0.9rem; border-radius:999px; cursor:pointer; box-shadow: 0 6px 18px rgba(99,102,241,0.12); display:flex; align-items:center; gap:0.5rem; }
-  .btn-icon { color: #111827; }
-  .btn-label { display: inline-block; }
-  /* hide labels when collapsed */
-  .sidebar.collapsed .btn-label { display: none; }
+        .sidebar-bottom { display:flex; flex-direction:column; gap:0.5rem; }
+        .btn-login { background:transparent; border:1px solid transparent; color:#111827; padding:0.5rem; text-align:left; cursor:pointer; border-radius:8px; display:flex; align-items:center; gap:0.5rem; }
+        .btn-login:hover { background: rgba(0,0,0,0.04); }
+        .btn-register { background: linear-gradient(90deg,#7c3aed,#667eea); color:white; border:none; padding:0.55rem 0.9rem; border-radius:999px; cursor:pointer; box-shadow: 0 6px 18px rgba(99,102,241,0.12); display:flex; align-items:center; gap:0.5rem; }
+        .btn-icon { color: #111827; }
+        .btn-label { display: inline-block; }
+        /* hide labels when collapsed */
+        .sidebar.collapsed .btn-label { display: none; }
 
-  /* Keep the bottom area visually pinned on tall sidebars */
-  .sidebar-bottom { margin-top: auto; }
+        /* Keep the bottom area visually pinned on tall sidebars */
+        .sidebar-bottom { margin-top: auto; }
 
         /* Responsive: collapse sidebar to top bar on small screens */
         @media (max-width: 900px) {
@@ -351,11 +359,11 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
           .sidebar .logo-img { width:32px; height:32px; }
 
           /* Hamburger: small fixed square in the corner. Only this small box responds to hover. */
-  .hamburger-wrap { display:flex !important; position: fixed; right: 8px; top: 8px; width:34px; height:34px; align-items:center; justify-content:center; z-index:1101; border-radius:6px; background: transparent !important; box-shadow: none !important; transition: background 160ms ease, transform 120ms ease; }
-  .hamburger-wrap:hover { background: linear-gradient(90deg,#7c3aed,#667eea) !important; transform: scale(1.02); }
-  .hamburger-btn { display:inline-flex !important; background: transparent !important; border: none !important; width:22px; height:22px; align-items:center; justify-content:center; padding:0; cursor:pointer; color: #6b7280 !important; box-shadow: none !important; }
-  .hamburger-btn svg { display:block; }
-  .hamburger-wrap:hover .hamburger-btn { color: #ffffff !important; }
+        .hamburger-wrap { display:flex !important; position: fixed; right: 8px; top: 8px; width:34px; height:34px; align-items:center; justify-content:center; z-index:1101; border-radius:6px; background: transparent !important; box-shadow: none !important; transition: background 160ms ease, transform 120ms ease; }
+        .hamburger-wrap:hover { background: linear-gradient(90deg,#7c3aed,#667eea) !important; transform: scale(1.02); }
+        .hamburger-btn { display:inline-flex !important; background: transparent !important; border: none !important; width:22px; height:22px; align-items:center; justify-content:center; padding:0; cursor:pointer; color: #6b7280 !important; box-shadow: none !important; }
+        .hamburger-btn svg { display:block; }
+        .hamburger-wrap:hover .hamburger-btn { color: #ffffff !important; }
 
           /* Lower logo slightly and ensure full visibility */
           .sidebar .logo-img { margin-top:10px; width:40px; height:40px; }
@@ -383,32 +391,30 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
           .mobile-footer { padding:0.6rem 1rem 1rem; border-top:1px solid rgba(0,0,0,0.04); color:#6b7280; font-size:0.85rem; }
         }
           /* ==================== */
-/* Corrección de Color de ÍCONOS Fijos */
-/* ==================== */
+  /* Corrección de Color de ÍCONOS Fijos */
+  /* ==================== */
 
-/* Selecciona el span que contiene el ícono y fuerza su color */
-.sidebar-link .link-icon { 
-    /* El color gris oscuro deseado que no debe cambiar */
-    color: #374151 !important; 
-}
+  /* Selecciona el span que contiene el ícono y fuerza su color */
+  .sidebar-link .link-icon { 
+      /* El color gris oscuro deseado que no debe cambiar */
+      color: #374151 !important; 
+  }
 
-/* Asegura que los íconos SVG dentro del link-icon también usen ese color */
-.sidebar-link .link-icon svg {
-    color: #374151 !important;
-    /* Relleno (fill) opcional si los íconos lo usan */
-    fill: none !important; 
-}
+  /* Asegura que los íconos SVG dentro del link-icon también usen ese color */
+  .sidebar-link .link-icon svg {
+      color: #374151 !important;
+      /* Relleno (fill) opcional si los íconos lo usan */
+      fill: none !important; 
+  }
 
-/* Manejo del color cuando el link está ACTIVO (puede ser diferente) */
-.sidebar-link.active .link-icon,
-.sidebar-link.active .link-icon svg {
-    /* Si quieres que los íconos activos SÍ cambien (ej. al color primario o blanco) 
-       ajusta este color. De lo contrario, mantenlo fijo. */
-    color: #111827 !important; /* Ejemplo: se vuelven más oscuros cuando están activos */
-}
+  /* Manejo del color cuando el link está ACTIVO (puede ser diferente) */
+  .sidebar-link.active .link-icon,
+  .sidebar-link.active .link-icon svg {
+      /* Si quieres que los íconos activos SÍ cambien (ej. al color primario o blanco) 
+         ajusta este color. De lo contrario, mantenlo fijo. */
+      color: #111827 !important; /* Ejemplo: se vuelven más oscuros cuando están activos */
+  }
       `}</style>
     </>
   );
 }
-
-// Añadimos cleanup por si acaso (no export por fuera del componente)
