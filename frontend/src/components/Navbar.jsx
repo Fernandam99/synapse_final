@@ -5,17 +5,12 @@ import { Link, useLocation } from "react-router-dom";
 
 import { Home, Target, CheckCircle, Star, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 
-import { Home, Target, CheckCircle, User, LogIn, UserPlus, Menu, X } from "lucide-react";
-
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
-import LanguageSelector from './LanguageSelector';
-import { useTranslation } from 'react-i18next';
 
 export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
-  const { t, i18n } = useTranslation();
 
   // Display name helper: prefer full name fields, fall back to username or email prefix
   const getDisplayName = (u) => {
@@ -66,18 +61,13 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   }, [expanded]);
 
   const navItems = [
-    { path: '/', label: t('home'), icon: <Home size={18} /> },
-    { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
+  { path: '/', label: 'Inicio', icon: <Home size={18} /> },
+  { path: '/pomodoro', label: 'Pomodoro', icon: <Target size={18} /> },
 
-    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/recompensas', label: t('rewards', 'Recompensas'), icon: <Star size={18} /> },
-    { path: '/tareas', label: t('tasks', 'Tareas'), icon: <CheckCircle size={18} /> },
-    // Se removieron los enlaces a 'sesion-grupal' y 'perfil' del navbar según solicitud
-
-    { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
-    { path: '/meditacion', label: t('meditation'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/sesion-grupal', label: t('group_session'), icon: <CheckCircle size={18} />, requiresAuth: true },
-    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+  { path: '/meditacion', label: 'Meditación', icon: <CheckCircle size={18} />, requiresAuth: true },
+  { path: '/recompensas', label: 'Recompensas', icon: <Star size={18} /> },
+  { path: '/tareas', label: 'Tareas', icon: <CheckCircle size={18} /> },
+   
 
   ];
 
@@ -108,20 +98,20 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     <>
       <aside
         className={`sidebar ${isMenuOpen ? 'open' : ''} ${expanded ? 'expanded' : 'collapsed'}`}
-        aria-label={t('navigation', 'Main navigation')}
+        aria-label={"Navegación principal"}
         onMouseEnter={() => { if (window && window.innerWidth > 900) setExpanded(true); }}
         onMouseLeave={() => { if (window && window.innerWidth > 900) setExpanded(false); }}
       >
         <div className="sidebar-top">
             <Link to="/" className="nav-logo">
-            <img src={isotipo} alt={t('logo_alt', 'Logo')} className="logo-img" />
-            <span className="logo-text">{t('app_name', 'Synapse')}</span>
+            <img src={isotipo} alt={"Logo"} className="logo-img" />
+            <span className="logo-text">Synapse</span>
           </Link>
         </div>
 
         <nav>
           <ul className="sidebar-menu">
-            {navItems.map(item => {
+            {(user ? navItems : navItems.filter(i => i.path === '/')).map(item => {
               const isActive = location.pathname === item.path;
               return (
                 <li key={item.path}>
@@ -137,22 +127,22 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
         <div className="sidebar-bottom">
           
-          {!user ? (
+              {!user ? (
             <>
               {/* Selectores para usuarios NO autenticados */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', marginBottom: 6 }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <ThemeSelector theme={theme} setTheme={setTheme} compact={!expanded} />
-                  <LanguageSelector currentLng={i18n.language} compact={!expanded} />
+                  <div style={{ padding: 6, fontWeight: 700 }}>ES</div>
                 </div>
               </div>
               <button onClick={() => onAuthClick('login')} className="btn-login">
                 <LogIn size={16} className="btn-icon" />
-                <span className="btn-label">{t('login')}</span>
+                <span className="btn-label">Iniciar sesión</span>
               </button>
               <button onClick={() => onAuthClick('register')} className="btn-register">
                 <UserPlus size={16} className="btn-icon" />
-                <span className="btn-label">{t('register')}</span>
+                <span className="btn-label">Registrarse</span>
               </button>
             </>
           ) : (
@@ -170,9 +160,9 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                       transition: 'transform 200ms ease-out', 
                   }}
               >
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <ThemeSelector theme={theme} setTheme={setTheme} compact={!expanded} />
-                  <LanguageSelector currentLng={i18n.language} compact={!expanded} />
+                  <div style={{ padding: 6, fontWeight: 700 }}>ES</div>
                 </div>
               </div>
 
@@ -188,13 +178,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-haspopup="true" 
                     style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
                 >
-
                   <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{getDisplayName(user).charAt(0).toUpperCase()}</div>
                   <span className="btn-label" style={{ textAlign: 'left' }}>{getDisplayName(user)}</span>
-
-                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
-                  <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
-
                 </button>
 
                 {openProfile && (
@@ -219,10 +204,10 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
                     {/* Enlace a perfil eliminado; dejamos configuración y cerrar sesión */}
 
-                    <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('profile')}</Link>
+                    <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>Perfil</Link>
 
-                    <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
-                    <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
+                    <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>Configuración</Link>
+                    <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>Cerrar sesión</button>
                   </div>
                 )}
               </div>
@@ -235,7 +220,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
         <div className="hamburger-wrap" aria-hidden={isMenuOpen ? 'false' : 'true'}>
           <button
           className="hamburger-btn"
-          aria-label={isMenuOpen ? t('close_menu', 'Cerrar menú') : t('open_menu', 'Abrir menú')}
+          aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen(prev => !prev)}
         >
@@ -247,18 +232,18 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
       <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`} aria-hidden={!isMenuOpen}>
   <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
           <div className="mobile-menu-header">
-            <div className="mobile-selectors-top">
-              <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
-              <LanguageSelector currentLng={i18n.language} compact={true} />
-            </div>
-            <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
+          <div className="mobile-selectors-top">
+              <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
+              <div style={{ padding: 6, fontWeight: 700 }}>ES</div>
+            </div>
+            <button className="mobile-close" aria-label={'Cerrar menú'} onClick={() => setIsMenuOpen(false)}>
               <X size={18} />
             </button>
           </div>
 
           <nav className="mobile-nav">
             <ul>
-              {navItems.map(item => (
+              {(user ? navItems : navItems.filter(i => i.path === '/')).map(item => (
                 <li key={`mobile-${item.path}`}>
                   <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
                     <span className="link-icon">{item.icon}</span>
@@ -274,11 +259,11 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               <>
                 <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
                   <LogIn size={16} />
-                  <span>{t('login')}</span>
+                  <span>Iniciar sesión</span>
                 </button>
                 <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
                   <UserPlus size={16} />
-                  <span>{t('register')}</span>
+                  <span>Registrarse</span>
                 </button>
               </>
             ) : (
@@ -288,19 +273,19 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
                 <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
                   <User size={16} />
-                  <span>{t('my_account')}</span>
+                  <span>Mi cuenta</span>
                 </Link>
 
                 <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
                   <User size={16} />
-                  <span>{t('logout')}</span>
+                  <span>Cerrar sesión</span>
                 </button>
               </>
             )}
           </div>
 
           <div className="mobile-footer">
-            <small>{t('welcome')}</small>
+            <small>Bienvenido</small>
           </div>
         </div>
       </div>

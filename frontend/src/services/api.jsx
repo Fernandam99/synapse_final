@@ -43,6 +43,10 @@ if (useMock) {
 // Use getToken() helper so token access is centralized and avoid issues with timing
 api.interceptors.request.use((config) => {
 	const token = getToken();
+	// Debug: log request url and whether a token is present (temporary)
+	try {
+		console.debug('[api] request ->', (config && config.method) || 'GET', config && config.url, 'tokenPresent=', !!token);
+	} catch (e) {}
 	if (token) {
 		config.headers = config.headers || {};
 		config.headers.Authorization = `Bearer ${token}`;

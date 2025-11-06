@@ -17,7 +17,8 @@
 
     /* 🖤 Tonos Neutros (Grays) */
     /* Textos */
-    --text-primary: #111827;
+    /* En modo claro queremos texto principal totalmente negro para máxima legibilidad */
+    --text-primary: #000000;
     --text-secondary: #374151;
     --text-tertiary: #6b7280;
     --text-muted: #9ca3af;
@@ -66,7 +67,8 @@
 
 [data-theme="dark"] {
     /* 🎨 Colores Principales (Primary) - MÁS BRILLANTES para modo oscuro */
-    --primary-gradient: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); ;
+    /* Dark theme: más profundo/oscuro que 'midnight' para que los planes se vean más intensos */
+    --primary-gradient: linear-gradient(135deg, #050316 0%, #1a0630 100%);
     --primary-purple-dark: #c084fc;
     --primary-purple-light: #e9d5ff;
     --primary-purple-vibrant: #a78bfa;
