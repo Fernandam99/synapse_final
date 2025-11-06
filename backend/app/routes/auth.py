@@ -22,9 +22,9 @@ def register():
             return jsonify({'error': email_msg}), 400
         
         # Validar fortaleza de contraseña
-        password_valid, password_msg = validate_password(data['password'])
+        password_valid, password_msgs = validate_password(data['password'])
         if not password_valid:
-            return jsonify({'error': password_msg}), 400
+            return jsonify({'errors': password_msgs}), 400
         
         # Verificar si el email ya existe
         if Usuario.query.filter_by(correo=data['correo']).first():
@@ -126,10 +126,13 @@ def change_password():
         if not check_password_hash(usuario.password, data['current_password']):
             return jsonify({'error': 'Contraseña actual incorrecta'}), 400
         
+        # Validar nueva contraseña
+        password_valid, password_msgs = validate_password(data['new_password'])
+        if not password_valid:
+            return jsonify({'errors': password_msgs}), 400
         # Actualizar contraseña
         usuario.password = generate_password_hash(data['new_password'])
         db.session.commit()
-        
         return jsonify({'message': 'Contraseña actualizada exitosamente'}), 200
         
     except Exception as e:

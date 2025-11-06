@@ -101,9 +101,10 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
   // Items de navegación para usuarios normales (no deberían mostrarse a admin)
   const userNavItems = [
-    { path: '/', label: t('home'), icon: <Home size={18} /> },
+    { path: '/dashboard', label: t('home'), icon: <Home size={18} /> },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Target size={18} /> },
     { path: '/concentracion', label: t('concentration'), icon: <Target size={18} /> },
+    { path: '/salas', label: 'Salas', icon: <CheckCircle size={18} /> },
   ];
 
   // Seleccionar items: si es admin usamos solo adminNavItems, si no admin mostramos items normales
@@ -475,5 +476,3 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     </>
   );
 }
-
-// Añadimos cleanup por si acaso (no export por fuera del componente)
