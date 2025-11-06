@@ -1,10 +1,10 @@
 import React from 'react';
 import Login from '../pages/Login';
 import Register from '../pages/Register';
-import { useTranslation } from 'react-i18next';
+// translations removed — modal uses Spanish literals
 
 export default function AuthModal({ open, mode, onClose, onAuthSuccess, openAuth }) {
-  const { t } = useTranslation();
+  // no translation hook needed
   if (!open) return null;
 
   const handleSwitch = (nextMode) => {
@@ -18,7 +18,7 @@ export default function AuthModal({ open, mode, onClose, onAuthSuccess, openAuth
   return (
     <div className="auth-modal-overlay" role="dialog" aria-modal="true">
       <div className="auth-card">
-  <button className="close-btn" onClick={onClose} aria-label={t('close', 'Cerrar')}>×</button>
+  <button className="close-btn" onClick={onClose} aria-label={'Cerrar'}>×</button>
         <div className="auth-card-content">
           {content}
         </div>

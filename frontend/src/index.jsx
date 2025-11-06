@@ -4,7 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './styles.css';
 import ErrorBoundary from './ErrorBoundary';
-import './i18n'; // Import i18next configuration
+// i18n removed — app will be Spanish-only
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>

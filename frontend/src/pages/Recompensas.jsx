@@ -1,11 +1,10 @@
 // frontend/src/pages/Recompensas.jsx
 import React, { useState, useEffect } from 'react';
 import { Star, Gift, CheckCircle, Trophy, Box, Award, Crown, Loader } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import api from '../services/api';
 
 const Recompensas = () => {
-  const { t } = useTranslation();
+  // App en español — etiquetas estáticas
   const [activeTab, setActiveTab] = useState('available');
   const [recompensas, setRecompensas] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -138,8 +137,8 @@ const Recompensas = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">{t('rewards')}</h1>
-        <p className="text-gray-500">{t('rewards_subtitle')}</p>
+  <h1 className="text-3xl font-bold text-gray-800 mb-2">Recompensas</h1>
+  <p className="text-gray-500">Obtén recompensas por tu progreso y constancia</p>
       </div>
       
       {/* Tabs */}
@@ -154,7 +153,7 @@ const Recompensas = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
           >
             <Star className="mr-2" size={16} />
-            {t('available')}
+            Disponibles
           </button>
           <button
             onClick={() => setActiveTab('owned')}
@@ -165,7 +164,7 @@ const Recompensas = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
           >
             <Gift className="mr-2" size={16} />
-            {t('owned')}
+            Mis recompensas
           </button>
         </nav>
       </div>
@@ -178,7 +177,7 @@ const Recompensas = () => {
               <Star className="text-indigo-500 mr-2" size={20} />
               <div>
                 <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                <div className="text-sm text-gray-500">{t('total_rewards')}</div>
+                <div className="text-sm text-gray-500">Total recompensas</div>
               </div>
             </div>
           </div>
@@ -187,7 +186,7 @@ const Recompensas = () => {
               <CheckCircle className="text-green-500 mr-2" size={20} />
               <div>
                 <div className="text-2xl font-bold text-gray-800">{stats.consumidas}</div>
-                <div className="text-sm text-gray-500">{t('consumed_rewards')}</div>
+                <div className="text-sm text-gray-500">Recompensas consumidas</div>
               </div>
             </div>
           </div>
@@ -196,7 +195,7 @@ const Recompensas = () => {
               <Trophy className="text-amber-500 mr-2" size={20} />
               <div>
                 <div className="text-2xl font-bold text-gray-800">{stats.puntos}</div>
-                <div className="text-sm text-gray-500">{t('total_points')}</div>
+                <div className="text-sm text-gray-500">Puntos totales</div>
               </div>
             </div>
           </div>
@@ -228,13 +227,13 @@ const Recompensas = () => {
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-1">
             {activeTab === 'available' 
-              ? t('no_available_rewards') 
-              : t('no_owned_rewards')}
+              ? 'No hay recompensas disponibles' 
+              : 'No tienes recompensas'}
           </h3>
           <p className="text-gray-500 max-w-md mx-auto">
             {activeTab === 'available'
-              ? t('available_rewards_desc')
-              : t('owned_rewards_desc')}
+              ? 'Pronto habrá recompensas para canjear. Completa tareas y acumula puntos.'
+              : 'Aún no has obtenido recompensas. Participa para ganar puntos.'}
           </p>
         </div>
       ) : (
@@ -261,10 +260,10 @@ const Recompensas = () => {
                     <div className="flex-1">
                       <div className="flex justify-between items-start">
                         <h3 className="text-lg font-semibold text-gray-800">{recompensa.nombre}</h3>
-                        {isConsumed && (
+                            {isConsumed && (
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             <CheckCircle className="mr-1" size={12} />
-                            {t('consumed')}
+                            Consumida
                           </span>
                         )}
                       </div>
@@ -303,11 +302,11 @@ const Recompensas = () => {
                             ) : (
                               <Gift className="mr-2" size={16} />
                             )}
-                            {t('consume')}
+                            Canjear
                           </button>
                         ) : !isOwned && (
-                          <div className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                            {t('requirements')}:
+                            <div className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                            Requisitos:
                             {Object.entries(recompensa.requisitos || {}).map(([key, value]) => (
                               <span key={key} className="ml-1">{value} {key.replace('_', ' ')}</span>
                             ))}

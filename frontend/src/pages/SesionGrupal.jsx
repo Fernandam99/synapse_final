@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import { Users, Video, Clock, Calendar } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 export default function SesionGrupal() {
-    const { t } = useTranslation();
+    // App en español; etiquetas fijas
     const [salas, setSalas] = useState([
         { id: '1', nombre: 'Sesión de Productividad', participantes: 6, creador: 'Johan' },
         { id: '2', nombre: 'Mindfulness Colectivo', participantes: 3, creador: 'Mafe' }
@@ -25,7 +24,7 @@ export default function SesionGrupal() {
         <div className="concentration-app">
             <div className="container">
                 <div className="header">
-                    <h1 className="header-title">{t('group_session')}</h1>
+                    <h1 className="header-title">Sesión grupal</h1>
                     <p className="header-subtitle">Únete o crea una sesión grupal en tiempo real</p>
                 </div>
 

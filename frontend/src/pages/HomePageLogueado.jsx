@@ -12,7 +12,7 @@ import {
     Play,
     Trophy,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+// Traducciones eliminadas — app en español
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 import {
@@ -26,7 +26,7 @@ import {
 } from 'recharts';
 
 export default function HomePageLogueado() {
-    const { t } = useTranslation();
+    // Labels y textos en español fijos
     const navigate = useNavigate();
     const [stats, setStats] = useState({
         nombre: '',
@@ -71,7 +71,7 @@ export default function HomePageLogueado() {
                 setChartData(data);
             } catch (err) {
                 console.error('Error al cargar datos:', err);
-                setError(t('error_loading_stats', 'Error al cargar tus estadísticas'));
+                setError('Error al cargar tus estadísticas');
             } finally {
                 setLoading(false);
             }
@@ -166,12 +166,12 @@ export default function HomePageLogueado() {
             <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                        {t('welcome_back')}{' '}
+                        Bienvenido de nuevo{' '}
                         <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                             {stats.nombre || 'Usuario'}
                         </span>
                     </h1>
-                    <p className="text-gray-600 mt-1">{t('dashboard_subtitle', 'Tu progreso y actividades recientes')}</p>
+                    <p className="text-gray-600 mt-1">Tu progreso y actividades recientes</p>
                 </div>
 
                 <div className="flex items-center gap-3 bg-indigo-50 rounded-xl p-3 px-4">
@@ -189,34 +189,34 @@ export default function HomePageLogueado() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
                 {[
                     {
-                        title: t('sessions_today'),
+                        title: 'Sesiones hoy',
                         value: stats.sesionesHoy || 0,
                         icon: <Clock className="text-indigo-500" size={20} />,
-                        change: `+${Math.min(3, stats.sesionesHoy)} ${t('from_yesterday')}`,
+                        change: `+${Math.min(3, stats.sesionesHoy)} desde ayer`,
                         changeColor: 'text-green-600',
                     },
                     {
-                        title: t('total_time'),
+                        title: 'Tiempo total',
                         value: stats.tiempoTotal || '0h',
                         icon: <Clock className="text-purple-500" size={20} />,
-                        change: t('this_month'),
+                        change: 'Este mes',
                         changeColor: 'text-gray-500',
                     },
                     {
-                        title: t('completed_tasks'),
+                        title: 'Tareas completadas',
                         value: stats.tareasCompletadas || 0,
                         icon: <Calendar className="text-blue-500" size={20} />,
                         change:
                             stats.tareasCompletadas > 0
                                 ? `${Math.min(100, Math.round((stats.tareasCompletadas / 10) * 100))}%`
-                                : t('start_today'),
+                                : 'Comienza hoy',
                         changeColor: stats.tareasCompletadas > 0 ? 'text-blue-600' : 'text-gray-500',
                     },
                     {
-                        title: t('streak'),
-                        value: `${stats.racha || 0} ${t('days')}`,
+                        title: 'Racha',
+                        value: `${stats.racha || 0} días`,
                         icon: <Flame className="text-red-500" size={20} />,
-                        change: stats.racha > 0 ? t('keep_going') : t('start_streak'),
+                        change: stats.racha > 0 ? 'Sigue así' : 'Comienza tu racha',
                         changeColor: stats.racha > 0 ? 'text-amber-600' : 'text-gray-500',
                     },
                 ].map((item, i) => (

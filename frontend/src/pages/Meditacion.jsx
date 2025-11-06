@@ -2,11 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Droplet, Star, Play, RotateCcw } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useTranslation } from 'react-i18next';
 import meditacionService from '../services/meditacion';
 
 export default function Meditacion() {
-    const { t } = useTranslation();
+    // App en sólo español — etiquetas estáticas en español
     const [activeTab, setActiveTab] = useState('active');
     const [timer, setTimer] = useState(600); // 10 minutos
     const [isRunning, setIsRunning] = useState(false);
@@ -166,9 +165,9 @@ export default function Meditacion() {
         <div className="meditacion-app"> {/* ✅ Cambiado a meditacion-app para evitar conflicto */}
             <div className="container">
                 <div className="header">
-                    <h1 className="header-title">{t('meditation')}</h1>
+                    <h1 className="header-title">Meditación</h1>
                     <p className="header-subtitle">
-                        {t('tech_meditation.desc', 'Sesiones guiadas con biofeedback y adaptación en tiempo real.')}
+                        Sesiones guiadas con biofeedback y adaptación en tiempo real.
                     </p>
                 </div>
 
@@ -186,7 +185,7 @@ export default function Meditacion() {
                         <div className="stat-card">
                             <div className="stat-icon purple"><Clock /></div>
                             <div className="stat-value">{stats.weekMinutes}min</div>
-                            <div className="stat-label">{t('this_week')}</div>
+                            <div className="stat-label">Esta semana</div>
                         </div>
                         <div className="stat-card">
                             <div className="stat-icon pink"><Calendar /></div>
@@ -209,10 +208,10 @@ export default function Meditacion() {
                 <div className="tabs-container">
                     <div className="tabs-header">
                         <button className={`tab-button ${activeTab === 'active' ? 'active' : ''}`} onClick={() => setActiveTab('active')}>
-                            {t('session_active')}
+                            Sesión activa
                         </button>
                         <button className={`tab-button ${activeTab === 'progress' ? 'active' : ''}`} onClick={() => setActiveTab('progress')}>
-                            {t('my_progress')}
+                            Mi progreso
                         </button>
                     </div>
 
@@ -226,7 +225,7 @@ export default function Meditacion() {
 
                                 <div className="timer-circle">
                                     <div className="timer-time">{formatTime(timer)}</div>
-                                    <div className="timer-label">{t('meditation')}</div>
+                                    <div className="timer-label">Meditación</div>
                                 </div>
 
                                 <div className="session-controls">
@@ -256,15 +255,15 @@ export default function Meditacion() {
                                 <div className="button-group">
                                     {!isRunning ? (
                                         <button onClick={startMeditacion} className="button button-primary">
-                                            <Play /> {t('start')}
+                                            <Play /> Iniciar
                                         </button>
                                     ) : (
                                         <button onClick={() => finalizarSesion(false)} className="button button-secondary">
                                             Finalizar ahora
                                         </button>
                                     )}
-                                    <button onClick={resetTimer} className="button button-secondary">
-                                        <RotateCcw /> {t('reset')}
+                                        <button onClick={resetTimer} className="button button-secondary">
+                                        <RotateCcw /> Reiniciar
                                     </button>
                                 </div>
                             </div>

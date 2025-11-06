@@ -39,7 +39,8 @@ export default {
     pomodoroEstado: '/productividad/pomodoro/estado',
     
     // Estadísticas
-    estadisticas: '/estadisticas'
+    // Las estadísticas de tareas viven bajo /api/tareas/estadisticas en el backend
+    estadisticas: '/tareas/estadisticas'
   },
   tokenField: 'access_token',
   usuarioField: 'usuario'

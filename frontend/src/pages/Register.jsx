@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import api from '../services/api';
 import cfg from '../services/config';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 // === VALIDACIONES IDÉNTICAS AL BACKEND ===
 const EMAIL_REGEX = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$/;
@@ -20,22 +20,22 @@ function validatePassword(password) {
   return null;
 }
 
-const getErrorMessage = (key, t) => {
+const getErrorMessage = (key) => {
   const messages = {
-    err_password_length: t('err_password_length', 'La contraseña debe tener al menos 8 caracteres'),
-    err_password_uppercase: t('err_password_uppercase', 'La contraseña debe contener al menos una letra mayúscula'),
-    err_password_lowercase: t('err_password_lowercase', 'La contraseña debe contener al menos una letra minúscula'),
-    err_password_digit: t('err_password_digit', 'La contraseña debe contener al menos un número'),
-    err_password_special: t('err_password_special', 'La contraseña debe contener al menos un carácter especial (!@#$%^&*, etc.)'),
-    err_invalid_email: t('err_invalid_email', 'Por favor ingresa un correo válido'),
-    err_name_length: t('err_name_length', 'El nombre debe tener al menos 2 caracteres'),
-    err_password_mismatch: t('err_password_mismatch', 'Las contraseñas no coinciden'),
+    err_password_length: 'La contraseña debe tener al menos 8 caracteres',
+    err_password_uppercase: 'La contraseña debe contener al menos una letra mayúscula',
+    err_password_lowercase: 'La contraseña debe contener al menos una letra minúscula',
+    err_password_digit: 'La contraseña debe contener al menos un número',
+    err_password_special: 'La contraseña debe contener al menos un carácter especial (!@#$%^&*, etc.)',
+    err_invalid_email: 'Por favor ingresa un correo válido',
+    err_name_length: 'El nombre debe tener al menos 2 caracteres',
+    err_password_mismatch: 'Las contraseñas no coinciden',
   };
   return messages[key] || key;
 };
 
 export default function Register({ onSuccess, onSwitchMode }) {
-  const { t } = useTranslation();
+  const nav = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -55,46 +55,48 @@ export default function Register({ onSuccess, onSwitchMode }) {
     e.preventDefault();
     setErr('');
 
-    if (!validName) return setErr(getErrorMessage('err_name_length', t));
-    if (!validEmail) return setErr(getErrorMessage('err_invalid_email', t));
-    if (!validPassword) return setErr(getErrorMessage(passwordErrorKey, t));
-    if (!passwordsMatch) return setErr(getErrorMessage('err_password_mismatch', t));
+  if (!validName) return setErr(getErrorMessage('err_name_length'));
+  if (!validEmail) return setErr(getErrorMessage('err_invalid_email'));
+  if (!validPassword) return setErr(getErrorMessage(passwordErrorKey));
+  if (!passwordsMatch) return setErr(getErrorMessage('err_password_mismatch'));
 
     try {
       await api.post(cfg.paths.register, { username: name, correo: email, password });
       if (onSuccess) onSuccess('register');
+      // Después de registrar con éxito, navegar siempre al dashboard
+      nav('/dashboard');
     } catch (error) {
       console.error(error);
-      const msg = error.response?.data?.error || error.message || t('err_generic', 'Error al registrar');
+      const msg = error.response?.data?.error || error.message || 'Error al registrar';
       setErr(msg);
     }
   };
 
   return (
-    <div>
-      <div style={{ textAlign: 'center', marginBottom: 24 }}>
-        <h2 style={{ margin: 0, color: 'var(--text-primary)' }}>{t('register')}</h2>
+    <div className="auth-panel">
+      <div className="auth-header">
+  <h2 className="auth-title">Regístrate</h2>
       </div>
 
-      <button className="google-btn" type="button" style={{ marginBottom: 12 }}>
-        <span className="google-icon"><img src="/static/IMG/google.svg" alt={t('google_alt', 'Google')} /></span>
-        <span>{t('continue_with_google', 'Continuar con Google')}</span>
+      <button className="google-btn" type="button">
+        <span className="google-icon"><img src="/static/IMG/google.svg" alt="Google" /></span>
+        <span>Continuar con Google</span>
       </button>
 
-      {err && <div style={{ color: 'crimson', fontSize: 13, marginBottom: 8 }}>{err}</div>}
+      {err && <div className="error-message" style={{ marginBottom: 8 }}>{err}</div>}
 
       <form onSubmit={handle}>
         {/* Nombre */}
         <div className="input-wrap" onFocus={() => setTouched(t => ({ ...t, name: true }))}>
           <span className="input-icon"><User size={18} /></span>
-          <input className="auth-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={t('name_placeholder', 'Nombre')} />
+          <input className="auth-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={'Nombre'} />
         </div>
         {!validName && touched.name && <div style={{ color: '#f43f5e', fontSize: 12, marginTop: 6 }}>{getErrorMessage('err_name_length', t)}</div>}
 
         {/* Email */}
         <div className="input-wrap" onFocus={() => setTouched(t => ({ ...t, email: true }))}>
           <span className="input-icon"><Mail size={18} /></span>
-          <input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('email_placeholder', 'Correo electrónico')} />
+          <input className="auth-input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={'Correo electrónico'} />
         </div>
         {!validEmail && touched.email && <div style={{ color: '#f43f5e', fontSize: 12, marginTop: 6 }}>{getErrorMessage('err_invalid_email', t)}</div>}
 
@@ -106,7 +108,7 @@ export default function Register({ onSuccess, onSwitchMode }) {
             type={show ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={t('password_placeholder', 'Contraseña')}
+            placeholder={'Contraseña'}
             onPaste={(e) => e.preventDefault()}
             onCopy={(e) => e.preventDefault()}
             onCut={(e) => e.preventDefault()}
@@ -114,7 +116,7 @@ export default function Register({ onSuccess, onSwitchMode }) {
             onDrop={(e) => e.preventDefault()}
             autoComplete="new-password"
           />
-          <button type="button" onClick={() => setShow(s => !s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShow(s => !s)} aria-label={show ? 'Ocultar' : 'Mostrar'}>
             {show ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
@@ -130,7 +132,7 @@ export default function Register({ onSuccess, onSwitchMode }) {
             type={show2 ? 'text' : 'password'}
             value={password2}
             onChange={(e) => setPassword2(e.target.value)}
-            placeholder={t('confirm_password_placeholder', 'Confirmar contraseña')}
+            placeholder={'Confirmar contraseña'}
             onPaste={(e) => e.preventDefault()}
             onCopy={(e) => e.preventDefault()}
             onCut={(e) => e.preventDefault()}
@@ -138,7 +140,7 @@ export default function Register({ onSuccess, onSwitchMode }) {
             onDrop={(e) => e.preventDefault()}
             autoComplete="new-password"
           />
-          <button type="button" onClick={() => setShow2(s => !s)} style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShow2(s => !s)} aria-label={show2 ? 'Ocultar' : 'Mostrar'}>
             {show2 ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
@@ -150,18 +152,14 @@ export default function Register({ onSuccess, onSwitchMode }) {
           type="submit"
           className="submit-btn"
           disabled={!(validName && validEmail && validPassword && passwordsMatch)}
-          style={{
-            opacity: (validName && validEmail && validPassword && passwordsMatch) ? 1 : 0.6,
-            cursor: (validName && validEmail && validPassword && passwordsMatch) ? 'pointer' : 'not-allowed'
-          }}
         >
-          {t('register')}
+          Regístrate
         </button>
       </form>
 
       <div className="auth-footer">
-        <span>{t('already_have_account', '¿Ya tienes cuenta?')} </span>
-        <button className="switch-link" onClick={() => onSwitchMode && onSwitchMode()}>{t('login')}</button>
+        <span>¿Ya tienes cuenta? </span>
+        <button className="switch-link" onClick={() => onSwitchMode && onSwitchMode()}>Iniciar sesión</button>
       </div>
     </div>
   );

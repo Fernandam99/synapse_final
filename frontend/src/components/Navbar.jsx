@@ -1,17 +1,16 @@
 // Este archivo define la barra de navegación, gestionando enlaces, temas y autenticación.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Home, LayoutDashboard, Brain, Clock, Users, Calendar, Star, Shield, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
 import LanguageSelector from './LanguageSelector';
-import { useTranslation } from 'react-i18next';
 
 export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openProfile, setOpenProfile] = useState(false);
-  const { t, i18n } = useTranslation();
+  // Navbar uses fixed Spanish labels now (app is Spanish-only)
   // Por defecto colapsado; se expandirá solo cuando el usuario pase el mouse
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
@@ -32,6 +31,16 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     };
   }, [expanded]);
 
+  // Limpiar cualquier timeout pendiente al desmontar
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   // Escucha cambios de tamaño para forzar colapso en pantallas pequeñas
   useEffect(() => {
     const handleResize = () => {
@@ -46,19 +55,47 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   }, [expanded]);
 
   const navItems = [
-    { path: '/', label: t('home'), icon: <Home size={18} /> },
-    { path: '/dashboard', label: t('dashboard'), icon: <LayoutDashboard size={18} />, requiresAuth: true },
-    { path: '/pomodoro', label: t('pomodoro'), icon: <Clock size={18} />, requiresAuth: true },
-    { path: '/meditacion', label: t('meditation'), icon: <Brain size={18} />, requiresAuth: true },
-    { path: '/sesion-grupal', label: t('group_session'), icon: <Users size={18} />, requiresAuth: true },
-    { path: '/tareas', label: t('tasks'), icon: <Calendar size={18} />, requiresAuth: true },
-    { path: '/recompensas', label: t('rewards'), icon: <Star size={18} />, requiresAuth: true },
-    { path: '/admin', label: t('admin'), icon: <Shield size={18} />, requiresAuth: true, adminOnly: true },
-    { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
+    { path: '/', label: 'Inicio', icon: <Home size={18} /> },
+    { path: '/pomodoro', label: 'Pomodoro', icon: <Clock size={18} />, requiresAuth: true },
+    { path: '/meditacion', label: 'Meditación', icon: <Brain size={18} />, requiresAuth: true },
+    { path: '/sesion-grupal', label: 'Sesión grupal', icon: <Users size={18} />, requiresAuth: true },
+    { path: '/tareas', label: 'Tareas', icon: <Calendar size={18} />, requiresAuth: true },
+    { path: '/recompensas', label: 'Recompensas', icon: <Star size={18} />, requiresAuth: true },
+    { path: '/admin', label: 'Administración', icon: <Shield size={18} />, requiresAuth: true, adminOnly: true },
   ].filter(item => !item.adminOnly || (user?.rol_id === 1)); // Mostrar panel de admin solo para administradores
 
+  const closeTimeoutRef = useRef(null);
+
   const handleProfileMenuMouseLeave = () => {
-    setTimeout(() => setOpenProfile(false), 150); 
+    // Usar el timeout compartido para cierre (coherente con el avatar)
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setOpenProfile(false);
+      closeTimeoutRef.current = null;
+    }, 200);
+  };
+
+  // Handlers específicos del avatar (trigger sólo en avatar)
+  const handleAvatarMouseEnter = () => {
+    if (!user) return;
+    if (window && window.innerWidth > 900) {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      setOpenProfile(true);
+    }
+  };
+
+  const handleAvatarMouseLeave = () => {
+    if (!user) return;
+    if (window && window.innerWidth > 900) {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = setTimeout(() => {
+        setOpenProfile(false);
+        closeTimeoutRef.current = null;
+      }, 200);
+    }
   };
   
   const closeProfileMenu = () => {
@@ -84,15 +121,36 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     <>
       <aside
         className={`sidebar ${isMenuOpen ? 'open' : ''} ${expanded ? 'expanded' : 'collapsed'}`}
-        aria-label={t('navigation', 'Main navigation')}
-        onMouseEnter={() => { if (window && window.innerWidth > 900) setExpanded(true); }}
-        onMouseLeave={() => { if (window && window.innerWidth > 900) setExpanded(false); }}
+        aria-label={'Navegación principal'}
+        onMouseEnter={() => {
+          // Al pasar el mouse por la barra en pantallas grandes, expandirla
+          // y, si hay usuario, abrir el menú de perfil para que el avatar dependa del hover.
+          if (window && window.innerWidth > 900) {
+            setExpanded(true);
+            // Abrir el perfil cuando el puntero entre por la barra (comportamiento solicitado)
+            if (user) {
+              if (closeTimeoutRef.current) {
+                clearTimeout(closeTimeoutRef.current);
+                closeTimeoutRef.current = null;
+              }
+              setOpenProfile(true);
+            }
+          }
+        }}
+        onMouseLeave={() => {
+          // Al salir con el mouse, colapsar la barra y cerrar el menú de perfil.
+          if (window && window.innerWidth > 900) {
+            setExpanded(false);
+            // Usar el timeout compartido para cerrar el perfil con debounce
+            handleProfileMenuMouseLeave();
+          }
+        }}
       >
         <div className="sidebar-top">
             <Link to="/" className="nav-logo">
-            <img src={isotipo} alt={t('logo_alt', 'Logo')} className="logo-img" />
-            <span className="logo-text">{t('app_name', 'Synapse')}</span>
-          </Link>
+              <img src={isotipo} alt={'Logo'} className="logo-img" />
+              <span className="logo-text">Synapse</span>
+            </Link>
         </div>
 
         <nav>
@@ -118,80 +176,62 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
           {!user ? (
             <>
               {/* Selectores para usuarios NO autenticados */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div className="sidebar-selectors">
+                <div className="sidebar-selectors-row">
                   <ThemeSelector theme={theme} setTheme={setTheme} compact={!expanded} />
-                  <LanguageSelector currentLng={i18n.language} compact={!expanded} />
+                  <LanguageSelector compact={!expanded} />
                 </div>
               </div>
               <button onClick={() => onAuthClick('login')} className="btn-login">
                 <LogIn size={16} className="btn-icon" />
-                <span className="btn-label">{t('login')}</span>
+                <span className="btn-label">Iniciar sesión</span>
               </button>
               <button onClick={() => onAuthClick('register')} className="btn-register">
                 <UserPlus size={16} className="btn-icon" />
-                <span className="btn-label">{t('register')}</span>
+                <span className="btn-label">Regístrate</span>
               </button>
             </>
           ) : (
             // Bloque para usuario AUTENTICADO
             <>
               {/* 1. Selectores de Tema/Lenguaje (con animación de elevación) */}
-              <div 
-                  style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column', 
-                      gap: 6, 
-                      alignItems: 'center', 
-                      marginBottom: 6,
-                      transform: `translateY(${selectorLiftDistance})`, 
-                      transition: 'transform 200ms ease-out', 
-                  }}
-              >
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                <div className="sidebar-selectors sidebar-selectors--lift" style={{ transform: `translateY(${selectorLiftDistance})`, transition: 'transform 200ms ease-out' }}>
+                <div className="sidebar-selectors-row">
                   <ThemeSelector theme={theme} setTheme={setTheme} compact={!expanded} />
-                  <LanguageSelector currentLng={i18n.language} compact={!expanded} />
+                  <LanguageSelector compact={!expanded} />
                 </div>
               </div>
 
               {/* 2. Botón de Perfil y Menú Desplegable (Abre con Click) */}
-              <div 
-                  style={{ position: 'relative' }}
-                  onMouseLeave={handleProfileMenuMouseLeave} 
-              >
+              <div className="profile-wrap" onMouseEnter={handleAvatarMouseEnter} onMouseLeave={handleAvatarMouseLeave}>
                 <button 
                     onClick={() => setOpenProfile(s => !s)} // Abre/Cierra con CLICK
-                    className="btn-register" 
+                    className="profile-btn btn-register" 
                     aria-expanded={openProfile} 
-                    aria-haspopup="true" 
-                    style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
+                    aria-haspopup="true"
                 >
-                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
-                  <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
+                  <div className="profile-avatar">{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
+                  <span className="profile-name">{user?.Username || user?.nombre || user?.correo}</span>
                 </button>
 
                 {openProfile && (
                   <div 
-                      style={{ 
-                          position: 'absolute', 
-                          // CLAVE CORREGIDA: Mantiene el borde derecho del menú dentro de la barra lateral.
-                          right: expanded ? '0' : '8px', 
-                          bottom: profileMenuBottom, 
-                          transition: 'bottom 200ms ease-out', 
-                          background: menuStyles.background, 
-                          boxShadow: menuStyles.boxShadow, 
-                          borderRadius:8, 
-                          overflow:'hidden', 
-                          minWidth:180,
-                          zIndex: 1001, 
-                      }}
-                      onMouseEnter={() => setOpenProfile(true)} 
+                      className="profile-menu"
+                      style={{ right: expanded ? '0' : '8px', bottom: profileMenuBottom }}
+                      onMouseEnter={() => {
+                        // Evitar que el timeout cierre el menú mientras el puntero está sobre él
+                        if (closeTimeoutRef.current) {
+                          clearTimeout(closeTimeoutRef.current);
+                          closeTimeoutRef.current = null;
+                        }
+                        setOpenProfile(true);
+                      }} 
                       onMouseLeave={handleProfileMenuMouseLeave}
                   >
                     {/* Secciones de Perfil y Configuración */}
-                    <Link to="/perfil" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('profile')}</Link>
-                    <Link to="/config" onClick={closeProfileMenu} style={{ display:'block', padding:'10px 12px', textDecoration:'none', color: menuStyles.textColor }}>{t('settings')}</Link>
-                    <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} style={{ display:'block', width:'100%', textAlign:'left', padding:'10px 12px', border:'none', background:'transparent', cursor:'pointer', color: menuStyles.logoutColor }}>{t('logout')}</button>
+                    <Link to="/perfil" onClick={closeProfileMenu} className="profile-menu-link">Perfil</Link>
+                    <Link to="/config" onClick={closeProfileMenu} className="profile-menu-link">Configuración</Link>
+                    <button onClick={() => { closeProfileMenu(); onLogout && onLogout(); }} className="profile-menu-logout">Cerrar sesión</button>
                   </div>
                 )}
               </div>
@@ -204,7 +244,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
         <div className="hamburger-wrap" aria-hidden={isMenuOpen ? 'false' : 'true'}>
           <button
           className="hamburger-btn"
-          aria-label={isMenuOpen ? t('close_menu', 'Cerrar menú') : t('open_menu', 'Abrir menú')}
+          aria-label={isMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={isMenuOpen}
           onClick={() => setIsMenuOpen(prev => !prev)}
         >
@@ -215,12 +255,12 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
       {/* Mobile menu dropdown shown when hamburger is open */}
       <div className={`mobile-menu ${isMenuOpen ? 'open' : ''}`} aria-hidden={!isMenuOpen}>
       <div className="mobile-menu-card" role="dialog" aria-modal={isMenuOpen} tabIndex={-1}>
-              <div className="mobile-menu-header">
+                <div className="mobile-menu-header">
                 <div className="mobile-selectors-top">
                   <ThemeSelector theme={theme} setTheme={setTheme} compact={true} />
-                  <LanguageSelector currentLng={i18n.language} compact={true} />
+                  <LanguageSelector compact={true} />
                 </div>
-                <button className="mobile-close" aria-label={t('close_menu', 'Cerrar menú')} onClick={() => setIsMenuOpen(false)}>
+                <button className="mobile-close" aria-label={'Cerrar menú'} onClick={() => setIsMenuOpen(false)}>
                   <X size={18} />
                 </button>
               </div>
@@ -246,29 +286,29 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                   <>
                     <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
                       <LogIn size={16} />
-                      <span>{t('login')}</span>
+                      <span>Iniciar sesión</span>
                     </button>
                     <button onClick={() => { onAuthClick('register'); setIsMenuOpen(false); }} className="mobile-action-btn btn-register">
                       <UserPlus size={16} />
-                      <span>{t('register')}</span>
+                      <span>Regístrate</span>
                     </button>
                   </>
                 ) : (
                   <>
                     <Link to="/perfil" className="mobile-action-btn" onClick={() => setIsMenuOpen(false)}>
                       <User size={16} />
-                      <span>{t('my_account')}</span>
+                      <span>Mi cuenta</span>
                     </Link>
                     <button onClick={() => { onLogout(); setIsMenuOpen(false); }} className="mobile-action-btn btn-logout">
                       <User size={16} />
-                      <span>{t('logout')}</span>
+                      <span>Cerrar sesión</span>
                     </button>
                   </>
                 )}
               </div>
 
               <div className="mobile-footer">
-                <small>{t('welcome')}</small>
+                <small>Bienvenido</small>
               </div>
             </div>
       </div>

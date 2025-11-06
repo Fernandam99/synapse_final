@@ -321,6 +321,36 @@ aside.sidebar.expanded ~ .main-with-sidebar {
     width: 100%;
 }
 
+/* ==================== */
+/* Auth Panel / Forms    */
+/* ==================== */
+.auth-panel {
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+    font-family: Inter, system-ui, Arial, sans-serif;
+    color: var(--text-secondary);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 18px;
+}
+
+.auth-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+[data-theme='dark'] .auth-title,
+[data-theme='midnight'] .auth-title {
+    color: var(--text-on-primary);
+}
+
+.auth-google { margin-bottom: 12px; }
+
 .close-btn {
     position: absolute;
     right: 10px;
@@ -749,6 +779,31 @@ button:active {
     border-bottom: none;
 }
 
+/* Specific presentation-only constraint for the main tasks table
+   Limits horizontal width and centers it so the table doesn't stretch
+   edge-to-edge on very wide screens. Responsive rules below allow
+   full-width on small devices. */
+.tareas-table {
+    width: 100%;
+    max-width: 1100px; /* constrain to dashboard-like content width */
+    margin: 12px auto 0; /* center inside the left column */
+    box-sizing: border-box;
+}
+
+.tareas-table td,
+.tareas-table th {
+    /* default: don't artificially cap cell width when using full dashboard width */
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+    .tareas-table td,
+    .tareas-table th {
+        white-space: normal; /* allow wrapping on small screens */
+    }
+}
+
 /* ==================== */
 /* Navbar Styles */
 /* ==================== */
@@ -865,7 +920,8 @@ button:active {
     border-radius: 28px;
     padding: 32px;
     overflow: hidden;
-    animation: cardFloat 6s ease-in-out infinite;
+    /* Animación flotante eliminada para diseño estático */
+    animation: none !important;
     box-shadow: 
         var(--shadow-heavy),
         0 0 60px color-mix(in srgb, var(--text-on-primary) 10%, transparent),
@@ -885,7 +941,8 @@ button:active {
         color-mix(in srgb, var(--text-on-primary) 5%, transparent) 100%
     );
     background-size: 200% 200%;
-    animation: shimmer 3s ease-in-out infinite;
+    /* Shimmer disabled for static hero */
+    animation: none !important;
     border-radius: 28px;
     pointer-events: none;
 }
@@ -914,7 +971,8 @@ button:active {
     );
     border-radius: 28px;
     opacity: 0;
-    animation: glowPulse 4s ease-in-out infinite;
+    /* Glow animation disabled for static presentation */
+    animation: none !important;
     z-index: -1;
     filter: blur(20px);
 }
@@ -1248,13 +1306,68 @@ button:active {
     bottom: 0;
     background-image: radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--text-on-primary) 8%, transparent) 0%, transparent 50%),
                       radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--text-on-primary) 6%, transparent) 0%, transparent 50%);
-    animation: heroFloat 20s ease-in-out infinite;
+    /* Hero background animation disabled for static hero */
+    animation: none !important;
     pointer-events: none;
 }
 
 @keyframes heroFloat {
     0%, 100% { transform: translate(0, 0) scale(1); }
     50% { transform: translate(-20px, -20px) scale(1.05); }
+}
+
+/* ------------------------------------------------------------------ */
+/* Ocultar el cuadro decorativo flotante del hero (sin alterar markup)  */
+/* ------------------------------------------------------------------ */
+.hero-card-container { display: none !important; }
+
+/* ------------------------------------------------------------------ */
+/* Estilos para selección de plan (presentación únicamente)            */
+/* Añadir la clase `selected` a la opción activa para mostrar morado.  */
+/* ------------------------------------------------------------------ */
+.plan-options {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+.plan-option {
+    padding: 10px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-default);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-weight: 700;
+    min-width: 120px;
+    text-align: center;
+}
+
+.plan-option:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-light);
+}
+
+.plan-option.selected {
+    background: linear-gradient(90deg, var(--primary-purple-vibrant), var(--primary-purple-light));
+    color: var(--text-on-primary);
+    border-color: transparent;
+    box-shadow: var(--shadow-primary);
+}
+
+.plan-option.selected .btn,
+.plan-option.selected button {
+    color: var(--text-on-primary) !important;
+}
+
+/* Asegurar contraste en tema claro para la sección hero */
+[data-theme="light"] .homepage-root .homepage-hero-fullbleed.hero-section {
+    background: var(--bg-secondary, #f8fafc);
+    color: var(--text-primary, #111827);
 }
 
 .homepage-root .hero-inner {
@@ -1324,7 +1437,8 @@ button:active {
     box-shadow: var(--shadow-heavy), inset 0 0 60px color-mix(in srgb, var(--text-on-primary) 8%, transparent);
     backdrop-filter: blur(10px);
     border: 1px solid color-mix(in srgb, var(--text-on-primary) 18%, transparent);
-    animation: floatVisual 6s ease-in-out infinite;
+    /* Disabled float animation to keep hero static */
+    animation: none !important;
     opacity: 0.85;
 }
 
@@ -1339,7 +1453,8 @@ button:active {
     position: absolute;
     border-radius: 50%;
     background: color-mix(in srgb, var(--text-on-primary) 10%, transparent);
-    animation: pulse 4s ease-in-out infinite;
+    /* Disabled pulse to avoid motion */
+    animation: none !important;
 }
 
 .hero-visual::before {
@@ -1613,6 +1728,29 @@ button:active {
     align-items: start;
     max-width: 1600px;
     margin: 0 auto;
+}
+
+/* Narrower layout specifically for the Tareas view */
+.tareas-root .dashboard-grid {
+    /* Use same layout as the global dashboard grid so the Tareas view
+       matches the dashboard width and column sizing. */
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Let the left column use full width of its grid area (no extra max constraint) */
+.tareas-root .dashboard-left {
+    max-width: none;
+}
+
+@media (max-width: 1024px) {
+    .tareas-root .dashboard-grid {
+        grid-template-columns: 1fr 380px; /* keep consistent for medium screens */
+    }
 }
 
 .dashboard-left {
@@ -2725,3 +2863,115 @@ body:has(.sidebar.expanded) .site-footer .footer-inner {
     box-shadow: none;
     border-color: var(--border-default);
   }
+
+/* ------------------------------------------------------------------ */
+/* Variables y utilidades para menús y profile (usadas por Navbar.jsx)  */
+/* ------------------------------------------------------------------ */
+:root {
+    --menu-bg: #ffffff;
+    --menu-text-color: var(--text-primary);
+    --menu-logout-color: var(--state-danger-primary);
+    --menu-box-shadow: 0 8px 30px rgba(2,6,23,0.12);
+}
+
+[data-theme="dark"] {
+    --menu-bg: #0f172a;
+    --menu-text-color: #e6eef8;
+    --menu-logout-color: #fb7185;
+    --menu-box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+}
+
+[data-theme="midnight"] {
+    --menu-bg: #071025;
+    --menu-text-color: #e6eef8;
+    --menu-logout-color: #f59e0b;
+    --menu-box-shadow: 0 8px 30px rgba(0,0,0,0.55);
+}
+
+/* Sidebar selectors (theme & language area) */
+.sidebar-selectors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.sidebar-selectors-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.sidebar-selectors--lift {
+    transition: transform 200ms ease-out;
+}
+
+/* Profile button + avatar */
+.profile-wrap { position: relative; }
+.profile-btn {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 6px 8px;
+    border-radius: 10px;
+}
+.profile-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    background: var(--primary-purple-vibrant);
+    color: var(--text-on-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.profile-name { text-align: left; }
+
+.profile-menu {
+    position: absolute;
+    transition: bottom 200ms ease-out;
+    background: var(--menu-bg);
+    box-shadow: var(--menu-box-shadow);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 180px;
+    z-index: 1001;
+    right: 8px; /* default, can be overridden inline when rendered */
+}
+
+.profile-menu-link,
+.profile-menu-logout {
+    display: block;
+    padding: 10px 12px;
+    text-decoration: none;
+    color: var(--menu-text-color);
+    background: transparent;
+    border: none;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+}
+
+.profile-menu-logout { color: var(--menu-logout-color); font-weight: 700; }
+
+/* Footer social buttons */
+.social-btn {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--text-on-primary) 8%, transparent);
+    color: var(--text-tertiary);
+    transition: all 0.22s ease;
+}
+.social-btn:hover {
+    background: var(--text-on-primary);
+    color: var(--text-primary);
+    transform: translateY(-4px) scale(1.06);
+}
+
