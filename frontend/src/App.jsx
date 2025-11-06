@@ -43,6 +43,7 @@ const Tareas = safeLazy(() => import('./pages/Tareas'));
 const SesionesTareas = safeLazy(() => import('./pages/SesionesTareas'));
 const AdminPanel = safeLazy(() => import('./pages/AdminPanel'));
 
+
 // Componentes comunes
 const Navbar = safeLazy(() => import('./components/Navbar'));
 const Footer = safeLazy(() => import('./components/Footer'));
