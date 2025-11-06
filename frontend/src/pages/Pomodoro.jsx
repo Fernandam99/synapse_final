@@ -58,13 +58,15 @@ export default function Pomodoro() {
                 ciclos_objetivo: config.ciclos_objetivo,
                 modo_no_distraccion: config.modo_no_distraccion
             };
-            const res = await api.post('/productividad/pomodoro/iniciar', payload);
+            const res = await api.post(cfg.paths.pomodoroIniciar, payload);
             const data = res.data.pomodoro || res.data;
-            setSessionId(data.sesion_id);
+            const sesionId = data.sesion_id;
+            if (!sesionId) throw new Error('No se recibió ID de sesión');
+            setSessionId(sesionId);
             setEstado('activo');
-            setCiclosCompletados(0);
             setFaseActual('trabajo');
             setTiempoRestante(config.duracion_trabajo * 60);
+            setCiclosCompletados(0);
         } catch (error) {
             console.error('Error al iniciar Pomodoro:', error);
             alert('No se pudo iniciar la sesión. ¿Ya tienes una activa?');
@@ -74,13 +76,14 @@ export default function Pomodoro() {
     const finalizarSesion = async (completada = false) => {
         if (!sessionId) return;
         try {
-            await api.post(`/productividad/pomodoro/finalizar`, {
+            await api.post(cfg.paths.pomodoroFinalizar, {
                 completado_totalmente: completada
             });
             setEstado('finalizado');
             setSessionId(null);
         } catch (error) {
             console.error('Error al finalizar Pomodoro:', error);
+            alert(error.response?.data?.error || 'Error al finalizar la sesión');
         }
     };
 

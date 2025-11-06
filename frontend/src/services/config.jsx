@@ -56,14 +56,13 @@ export default {
 
     // Pomodoro (productividad)
     pomodoroIniciar: '/productividad/pomodoro/iniciar',
-    pomodoroFinalizar: (sesionId) => `/productividad/pomodoro/finalizar/${sesionId}`,
+    pomodoroFinalizar: '/productividad/pomodoro/finalizar', 
     pomodoroEstado: '/productividad/pomodoro/estado',
 
     // Meditación (bienestar)
     meditacionIniciar: '/bienestar/meditacion/iniciar',
-    meditacionFinalizar: (sesionId) => `/bienestar/meditacion/finalizar/${sesionId}`,
-    meditacionEstado: '/bienestar/meditacion/estado',
-    meditacionHistorial: '/bienestar/meditacion/historial'
+    meditacionFinalizar: '/bienestar/meditacion/finalizar', 
+    meditacionHistorial: '/bienestar/meditacion/historial',
   },
 
   // Nombres de campos en la respuesta de autenticación

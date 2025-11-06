@@ -29,8 +29,7 @@ export default function Meditacion() {
         const cargarDatos = async () => {
             try {
                 const res = await meditacionService.getHistorial();
-                const historial = res.data || [];
-
+                const historial = Array.isArray(res.data) ? res.data : [];
                 // Calcular estadísticas
                 const hoy = new Date();
                 const hace7dias = new Date();
@@ -43,7 +42,7 @@ export default function Meditacion() {
                 });
 
                 const totalMinutosSemana = completadasEstaSemana.reduce((sum, s) => sum + (s.duracion_real || 0), 0);
-                const racha = calcularRacha(historial); // Implementación abajo
+                const racha = calcularRacha(historial);
 
                 setStats({
                     weekMinutes: Math.round(totalMinutosSemana),
@@ -58,14 +57,13 @@ export default function Meditacion() {
                     const fecha = new Date(hace7dias);
                     fecha.setDate(hace7dias.getDate() + i);
                     const minutos = completadasEstaSemana
-                        .filter(s => new Date(s.fecha).toDateString() === fecha.toDateString())
+                        .filter(s => new Date(s.inicio).toDateString() === fecha.toDateString())
                         .reduce((sum, s) => sum + (s.duracion_real || 0), 0);
                     return { day: dia, minutes: minutos };
                 });
                 setProgressData(data);
             } catch (err) {
                 console.error('Error al cargar historial:', err);
-                // Mantener valores por defecto en caso de error
                 setStats({ weekMinutes: 0, completedSessions: 0, streak: 0, effectiveness: 0 });
                 setProgressData([
                     { day: 'Lun', minutes: 0 },
@@ -130,12 +128,14 @@ export default function Meditacion() {
         try {
             const payload = { duracion: duracion, tipo_meditacion: tipo };
             const res = await meditacionService.iniciar(payload);
-            setSessionId(res.data.meditacion.sesion_id);
+            const sesionId = res.meditacion?.sesion_id || res.sesion_id;
+            if (!sesionId) throw new Error('No se recibió ID de sesión');
+            setSessionId(sesionId);
             setTimer(duracion * 60);
             setIsRunning(true);
         } catch (err) {
             console.error('Error al iniciar meditación:', err);
-            alert(err.response?.data?.error || 'No se pudo iniciar la sesión');
+            alert(err.response?.data?.error || 'No se pudo iniciar la meditación');
         }
     };
 
@@ -148,6 +148,7 @@ export default function Meditacion() {
             });
         } catch (err) {
             console.error('Error al finalizar meditación:', err);
+            alert(err.response?.data?.error || 'Error al finalizar');
         } finally {
             setIsRunning(false);
             setSessionId(null);
@@ -162,7 +163,7 @@ export default function Meditacion() {
     };
 
     return (
-        <div className="concentration-app">
+        <div className="meditacion-app"> {/* ✅ Cambiado a meditacion-app para evitar conflicto */}
             <div className="container">
                 <div className="header">
                     <h1 className="header-title">{t('meditation')}</h1>
@@ -294,56 +295,16 @@ export default function Meditacion() {
             </div>
 
             <style jsx>{`
-        .session-controls {
-          margin: 24px 0;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-          align-items: center;
+        .meditacion-app { /* ✅ Cambiado el nombre del contenedor */
+          min-height: 100vh;
+          background: linear-gradient(135deg, #faf5ff 0%, #fef3f9 50%, #f0f9ff 100%);
+          padding: 32px;
         }
-        .control-select, .duration-slider {
-          width: 100%;
-          max-width: 320px;
-          padding: 8px 12px;
-          border-radius: 8px;
-          border: 1px solid #ddd;
-        }
-        .duration-slider {
-          -webkit-appearance: none;
-          height: 6px;
-          background: #e0e0e0;
-          border-radius: 3px;
-        }
-        .duration-slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 18px;
-          height: 18px;
-          border-radius: 50%;
-          background: #9333ea;
-          cursor: pointer;
-        }
-        .button {
-          padding: 10px 20px;
-          border-radius: 8px;
-          font-weight: 600;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          border: none;
-          cursor: pointer;
-        }
-        .button-primary {
-          background: linear-gradient(135deg, #7c3aed, #667eea);
-          color: white;
-        }
-        .button-secondary {
-          background: #f3f4f6;
-          color: #333;
-        }
-        .button:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header { margin-bottom: 24px; }
+        .header-title { font-size: 28px; font-weight: 600; color: #c5c5c5; margin-bottom: 6px; letter-spacing: -0.5px; }
+        .header-subtitle { font-size: 14px; color: #6b7280; font-weight: 400; }
+
         .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -378,6 +339,156 @@ export default function Meditacion() {
         .stat-label {
           color: #666;
           font-size: 14px;
+        }
+
+        .tabs-container {
+          background: white;
+          border-radius: 16px;
+          padding: 24px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .tabs-header {
+          display: flex;
+          border-bottom: 2px solid #f0f0f0;
+          margin-bottom: 24px;
+        }
+        .tab-button {
+          padding: 12px 24px;
+          border: none;
+          background: transparent;
+          color: #666;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+          position: relative;
+          margin-bottom: -2px;
+        }
+        .tab-button:hover {
+          color: #9333ea;
+          background: #faf5ff;
+        }
+        .tab-button.active {
+          color: #9333ea;
+          border-bottom-color: #9333ea;
+          background: transparent;
+        }
+        .tabs-content {
+          padding: 20px 0;
+        }
+
+        .session-active {
+          text-align: center;
+        }
+        .session-title {
+          font-size: 22px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 6px;
+        }
+        .session-subtitle {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 40px;
+        }
+        .timer-circle {
+          width: 280px;
+          height: 280px;
+          margin: 0 auto;
+          border-radius: 50%;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          background: #f9fafb;
+          border: 2px solid #e5e7eb;
+          margin-bottom: 24px;
+          transition: all 0.3s;
+        }
+        .timer-time {
+          font-size: 56px;
+          font-weight: 700;
+          color: #111;
+        }
+        .timer-label {
+          font-size: 18px;
+          color: #555;
+          margin-top: 8px;
+        }
+
+        .session-controls {
+          margin: 24px 0;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          align-items: center;
+        }
+        .control-select, .duration-slider {
+          width: 100%;
+          max-width: 320px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid #ddd;
+        }
+        .duration-slider {
+          -webkit-appearance: none;
+          height: 6px;
+          background: #e0e0e0;
+          border-radius: 3px;
+        }
+        .duration-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          background: #9333ea;
+          cursor: pointer;
+        }
+
+        .button-group {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-top: 24px;
+        }
+        .button {
+          padding: 10px 20px;
+          border-radius: 8px;
+          font-weight: 600;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          border: none;
+          cursor: pointer;
+        }
+        .button-primary {
+          background: linear-gradient(135deg, #7c3aed, #667eea);
+          color: white;
+        }
+        .button-secondary {
+          background: #f3f4f6;
+          color: #333;
+        }
+        .button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .chart-title {
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a1a1a;
+          margin-bottom: 16px;
+          text-align: center;
+        }
+
+        @media (max-width: 600px) {
+          .meditacion-app { padding: 16px; }
+          .header-title { font-size: 24px; }
+          .timer-circle { width: 220px; height: 220px; }
+          .timer-time { font-size: 44px; }
+          .stats-grid { grid-template-columns: 1fr; }
+          .session-controls { max-width: 100%; }
         }
       `}</style>
         </div>

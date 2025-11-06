@@ -8,7 +8,7 @@ const Register = React.lazy(() => import('./pages/Register'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const HomePage = React.lazy(() => import('./pages/HomePage'));
 const Profile = React.lazy(() => import('./pages/Profile'));
-const Concentracion = React.lazy(() => import('./pages/Concentracion'));
+const Recompensas = React.lazy(() => import('./pages/Recompensas'));
 const Meditacion = React.lazy(() => import('./pages/Meditacion')); // ✅ IMPORTADO
 const SesionGrupal = React.lazy(() => import('./pages/SesionGrupal')); // ✅ IMPORTADO
 const Pomodoro = React.lazy(() => import('./pages/Pomodoro'));
@@ -124,8 +124,8 @@ export default function App() {
           <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
           <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
           <Route path="/concentracion" element={<PrivateRoute><Concentracion /></PrivateRoute>} />
-          <Route path="/meditacion" element={<PrivateRoute><Meditacion /></PrivateRoute>} /> {/* ✅ RUTA AGREGADA */}
-          <Route path="/sesion-grupal" element={<PrivateRoute><SesionGrupal /></PrivateRoute>} /> {/* ✅ RUTA AGREGADA */}
+          <Route path="/meditacion" element={<PrivateRoute><Meditacion /></PrivateRoute>} />
+          <Route path="/sesion-grupal" element={<PrivateRoute><SesionGrupal /></PrivateRoute>} /> 
           <Route path="/pomodoro" element={<PrivateRoute><Pomodoro /></PrivateRoute>} />
           <Route path="/config" element={<PrivateRoute><Profile defaultTab="settings" /></PrivateRoute>} />
 

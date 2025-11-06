@@ -36,7 +36,7 @@ export default function Profile({ defaultTab = 'info' }) {
       } catch (e) {
         console.error('Error cargando usuario:', e);
         setUsuario({
-          Username: 'Usuario',
+          username: 'Usuario',
           correo: '',
           telefono: '',
           ubicacion: '',
@@ -84,7 +84,7 @@ export default function Profile({ defaultTab = 'info' }) {
     if (typeof nameOrUser === 'string') {
       str = nameOrUser;
     } else if (typeof nameOrUser === 'object') {
-      str = nameOrUser.nombre_completo || nameOrUser.name || nameOrUser.Username || nameOrUser.username || nameOrUser.email || '';
+      str = nameOrUser.nombre_completo || nameOrUser.name || nameOrUser.username || nameOrUser.username || nameOrUser.email || '';
     } else {
       str = String(nameOrUser || '');
     }
@@ -97,7 +97,7 @@ export default function Profile({ defaultTab = 'info' }) {
       .toUpperCase();
   };
 
-  const displayName = usuario?.nombre_completo || usuario?.Username || usuario?.name || 'Usuario';
+  const displayName = usuario?.nombre_completo || usuario?.username || usuario?.name || 'Usuario';
   const displayEmail = usuario?.correo || usuario?.email || '';
 
   const handleModalUpdated = (updatedUser) => {
