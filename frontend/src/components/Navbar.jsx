@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
+import { getUsuario } from '../services/auth';
 import { Home, LayoutDashboard, Brain, Clock, Users, Calendar, Star, Shield, User, LogIn, UserPlus, Menu, X } from "lucide-react";
 import isotipo from "../IMG/isotipo.png";
 import ThemeSelector from './ThemeSelector';
@@ -16,6 +17,26 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
   // por encima (hover) en pantallas grandes.
   const [expanded, setExpanded] = useState(false);
   const location = useLocation();
+
+  // Computed user state derived from prop, localStorage or token.
+  const [computedUser, setComputedUser] = useState(() => {
+    try {
+      return user || getUsuario() || null;
+    } catch (e) { return user || null; }
+  });
+
+  // On mount, ensure computedUser is accurate by checking token if needed
+  useEffect(() => {
+    if (!computedUser) {
+      try {
+        const token = null; // placeholder - we don't need token parsing here
+        const fromStorage = getUsuario();
+        if (fromStorage) setComputedUser(fromStorage);
+      } catch (e) {}
+    }
+    // if prop user changed, keep in sync
+    if (user && user !== computedUser) setComputedUser(user);
+  }, [user]);
 
   // Mantiene una clase global en <body> para facilitar reglas CSS que dependan
   // del estado de la barra lateral (evita selectors frágiles entre hermanos).
@@ -45,7 +66,12 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     return () => { try { window.removeEventListener('resize', handleResize); } catch (e) {} };
   }, [expanded]);
 
-  const navItems = [
+  // Definir rutas estrictas por rol
+  const adminNavItems = [
+    { path: '/admin', label: t('admin'), icon: <Shield size={18} /> },
+    { path: '/perfil', label: t('profile'), icon: <User size={18} /> },
+  ];
+  const clientNavItems = [
     { path: '/', label: t('home'), icon: <Home size={18} /> },
     { path: '/dashboard', label: t('dashboard'), icon: <LayoutDashboard size={18} />, requiresAuth: true },
     { path: '/pomodoro', label: t('pomodoro'), icon: <Clock size={18} />, requiresAuth: true },
@@ -53,9 +79,16 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
     { path: '/sesion-grupal', label: t('group_session'), icon: <Users size={18} />, requiresAuth: true },
     { path: '/tareas', label: t('tasks'), icon: <Calendar size={18} />, requiresAuth: true },
     { path: '/recompensas', label: t('rewards'), icon: <Star size={18} />, requiresAuth: true },
-    { path: '/admin', label: t('admin'), icon: <Shield size={18} />, requiresAuth: true, adminOnly: true },
     { path: '/perfil', label: t('profile'), icon: <User size={18} />, requiresAuth: true },
-  ].filter(item => !item.adminOnly || (user?.rol_id === 1)); // Mostrar panel de admin solo para administradores
+  ];
+  let navItems = [];
+  if (computedUser?.rol_id === 1) {
+    navItems = adminNavItems;
+  } else if (computedUser) {
+    navItems = clientNavItems;
+  } else {
+    navItems = clientNavItems.filter(item => !item.requiresAuth);
+  }
 
   const handleProfileMenuMouseLeave = () => {
     setTimeout(() => setOpenProfile(false), 150); 
@@ -98,8 +131,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
         <nav>
           <ul className="sidebar-menu">
             {navItems.map(item => {
-              if (item.requiresAuth && !user) return null;
-              
+              if (item.requiresAuth && !computedUser) return null;
               const isActive = location.pathname === item.path;
               return (
                 <li key={item.path}>
@@ -115,7 +147,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
 
         <div className="sidebar-bottom">
           
-          {!user ? (
+          {!computedUser ? (
             <>
               {/* Selectores para usuarios NO autenticados */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', marginBottom: 6 }}>
@@ -166,8 +198,8 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
                     aria-haspopup="true" 
                     style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'flex-start' }}
                 >
-                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(user?.Username || user?.nombre || user?.correo || 'U').charAt(0).toUpperCase()}</div>
-                  <span className="btn-label" style={{ textAlign: 'left' }}>{user?.Username || user?.nombre || user?.correo}</span>
+                  <div style={{ width:28, height:28, borderRadius:999, background:'#7c3aed', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700 }}>{(computedUser?.Username || computedUser?.username || computedUser?.nombre || computedUser?.correo || 'U').charAt(0).toUpperCase()}</div>
+                  <span className="btn-label" style={{ textAlign: 'left' }}>{computedUser?.username || computedUser?.Username || computedUser?.nombre || computedUser?.correo}</span>
                 </button>
 
                 {openProfile && (
@@ -228,7 +260,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               <nav className="mobile-nav">
                 <ul>
                   {navItems.map(item => {
-                    if (item.requiresAuth && !user) return null;
+                    if (item.requiresAuth && !computedUser) return null;
                     return (
                       <li key={`mobile-${item.path}`}>
                         <Link to={item.path} className="mobile-link" onClick={() => setIsMenuOpen(false)}>
@@ -242,7 +274,7 @@ export default function Navbar({ user, onAuthClick, onLogout, theme, setTheme })
               </nav>
 
               <div className="mobile-actions">
-                {!user ? (
+                {!computedUser ? (
                   <>
                     <button onClick={() => { onAuthClick('login'); setIsMenuOpen(false); }} className="mobile-action-btn btn-login">
                       <LogIn size={16} />

@@ -58,7 +58,7 @@ export default function Pomodoro() {
                 ciclos_objetivo: config.ciclos_objetivo,
                 modo_no_distraccion: config.modo_no_distraccion
             };
-            const res = await api.post(cfg.paths.pomodoroIniciar, payload);
+            const res = await api.post('/pomodoro/iniciar', payload);
             const data = res.data.pomodoro || res.data;
             const sesionId = data.sesion_id;
             if (!sesionId) throw new Error('No se recibió ID de sesión');
@@ -76,7 +76,7 @@ export default function Pomodoro() {
     const finalizarSesion = async (completada = false) => {
         if (!sessionId) return;
         try {
-            await api.post(cfg.paths.pomodoroFinalizar, {
+            await api.post('/pomodoro/finalizar', {
                 completado_totalmente: completada
             });
             setEstado('finalizado');

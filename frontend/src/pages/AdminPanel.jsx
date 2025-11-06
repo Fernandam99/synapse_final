@@ -16,7 +16,7 @@ export default function AdminPanel() {
   useEffect(() => {
     async function loadUsuarios() {
       try {
-        const response = await api.get('/admin/usuarios');
+  const response = await api.get('/usuarios');
         setUsuarios(response.data || []);
         setError('');
       } catch (e) {
@@ -32,8 +32,9 @@ export default function AdminPanel() {
   async function handleDeactivateUser(userId) {
     if (!window.confirm('¿Seguro que deseas desactivar este usuario?')) return;
     try {
-      await api.post(`/admin/usuarios/${userId}/desactivar`);
-      setUsuarios(usuarios.map(u => u.id_usuario === userId ? { ...u, activo: false } : u));
+  // El backend implementa soft-delete con DELETE en /api/usuarios/:id
+  await api.delete(`/usuarios/${userId}`);
+      setUsuarios(usuarios.map(u => (u.id_usuario === userId || u.id === userId) ? { ...u, activo: false } : u));
       setError('');
     } catch (e) {
       console.error('Error desactivando usuario:', e);
@@ -43,7 +44,14 @@ export default function AdminPanel() {
 
   function handleEditClick(user) {
     setEditUser(user);
-    setEditForm({ ...user });
+    // Normalizar campos para el formulario de edición
+    setEditForm({
+      username: user.username || user.Username || '',
+      correo: user.correo || '',
+      celular: user.celular || user.telefono || '',
+      rol_id: user.rol_id || user.rolId || '',
+      activo: typeof user.activo === 'boolean' ? user.activo : (user.activo === 'true' || user.activo === '1')
+    });
   }
 
   function toggleTasks(userId) {
@@ -60,8 +68,9 @@ export default function AdminPanel() {
 
   async function handleEditSave() {
     try {
-      await api.put(`/admin/usuarios/${editUser.id_usuario}`, editForm);
-      setUsuarios(usuarios.map(u => u.id_usuario === editUser.id_usuario ? { ...u, ...editForm } : u));
+      const id = editUser.id_usuario || editUser.id;
+  await api.put(`/usuarios/${id}`, editForm);
+      setUsuarios(usuarios.map(u => ((u.id_usuario === id || u.id === id) ? { ...u, ...editForm } : u)));
       setEditUser(null);
       setError('');
     } catch (e) {
@@ -69,14 +78,19 @@ export default function AdminPanel() {
     }
   }
 
-  // Redirigir si no es admin
+  // Redirigir si no es admin (soportar rol_id numérico o string, o propiedad rol.nombre)
   useEffect(() => {
-    if (!(usuario?.rol_id === 1)) {
+    const isAdmin = !!usuario && (
+      Number(usuario.rol_id) === 1 ||
+      usuario.rol === 'admin' ||
+      (usuario.rol && usuario.rol.nombre === 'admin')
+    );
+    if (!isAdmin) {
       navigate('/');
     }
   }, [navigate, usuario]);
 
-  const nombreAdmin = usuario?.nombre_completo || usuario?.Username || usuario?.correo;
+  const nombreAdmin = usuario?.username || usuario?.nombre_completo || usuario?.correo;
 
   return (
     <div className="admin-panel">
@@ -101,9 +115,9 @@ export default function AdminPanel() {
               {usuarios.map(user => (
                 <React.Fragment key={user.id_usuario}>
                   <tr>
-                    <td>{user.Username}</td>
+                    <td>{user.username || user.Username || user.username}</td>
                     <td>{user.correo}</td>
-                    <td>{user.rol_id === 1 ? 'Admin' : 'Cliente'}</td>
+                    <td>{Number(user.rol_id) === 1 ? 'Admin' : 'Cliente'}</td>
                     <td>{user.activo ? 'Activo' : 'Inactivo'}</td>
                     <td>
                       <button 
@@ -150,13 +164,9 @@ export default function AdminPanel() {
         <div className="edit-modal">
           <h3>Editar usuario</h3>
           <div className="edit-form">
-            <label>Username: <input name="Username" value={editForm.Username || ''} onChange={handleEditChange} /></label>
+            <label>Username: <input name="username" value={editForm.username || ''} onChange={handleEditChange} /></label>
             <label>Email: <input name="correo" value={editForm.correo || ''} onChange={handleEditChange} /></label>
-            <label>Nombre completo: <input name="nombre_completo" value={editForm.nombre_completo || ''} onChange={handleEditChange} /></label>
-            <label>Teléfono: <input name="telefono" value={editForm.telefono || ''} onChange={handleEditChange} /></label>
-            <label>Ubicación: <input name="ubicacion" value={editForm.ubicacion || ''} onChange={handleEditChange} /></label>
-            <label>Fecha nacimiento: <input name="fecha_nacimiento" value={editForm.fecha_nacimiento || ''} onChange={handleEditChange} /></label>
-            <label>Descripción: <input name="descripcion" value={editForm.descripcion || ''} onChange={handleEditChange} /></label>
+            <label>Teléfono: <input name="celular" value={editForm.celular || ''} onChange={handleEditChange} /></label>
             <label>Rol: <select name="rol_id" value={editForm.rol_id} onChange={handleEditChange}>
               <option value={1}>Admin</option>
               <option value={2}>Cliente</option>

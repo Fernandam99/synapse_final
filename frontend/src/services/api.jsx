@@ -1,8 +1,11 @@
 // frontend/src/services/api.jsx
 import axios from 'axios';
 
+// Usar VITE_API_URL si está definida, si no usar localhost:5000 (backend)
+const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const api = axios.create({
-	baseURL: '/api',
+	baseURL: `${apiBase}/api`,
 	timeout: 10000,
 	headers: {
 		'Content-Type': 'application/json',

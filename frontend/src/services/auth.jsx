@@ -15,14 +15,41 @@ export function getToken() {
 
 // Guarda los datos del usuario en el localStorage
 export function saveUsuario(u) {
-  localStorage.setItem('synapse_usuario', JSON.stringify(u));
+  try {
+    // Normalizar forma mínima esperada por la app
+    const normalized = {
+      // username puede llegar como username o Username
+      username: (u.username || u.Username || u.usuario || '').toString(),
+      correo: (u.correo || u.email || u.correo_electronico || u.email_address || '').toString(),
+      // rol_id puede venir como number o string o como objeto rol: { id, nombre }
+      rol_id: u.rol_id ? Number(u.rol_id) : (u.rol && (u.rol.id || u.rol_id) ? Number(u.rol.id || u.rol_id) : undefined),
+      // mantener campo activo si existe
+      activo: typeof u.activo === 'boolean' ? u.activo : (u.activo === 'true' || u.activo === '1'),
+      // mantener cualquier otro dato útil
+      ...u
+    };
+    localStorage.setItem('synapse_usuario', JSON.stringify(normalized));
+    // Asegurar que axios tenga el token si ya existe
+    const token = getToken();
+    if (token) {
+      try { api.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch(e){}
+    }
+  } catch (e) {
+    try { localStorage.setItem('synapse_usuario', JSON.stringify(u)); } catch(_){}
+  }
 }
 
 // Obtiene los datos del usuario desde el localStorage
 export function getUsuario() {
   try {
     const raw = localStorage.getItem('synapse_usuario');
-    return raw ? JSON.parse(raw) : null;
+    const parsed = raw ? JSON.parse(raw) : null;
+    if (!parsed) return null;
+    // Asegurar tipos
+    if (parsed.rol_id) parsed.rol_id = Number(parsed.rol_id);
+    if (parsed.activo === 'true' || parsed.activo === '1') parsed.activo = true;
+    if (parsed.activo === 'false' || parsed.activo === '0') parsed.activo = false;
+    return parsed;
   } catch {
     return null;
   }

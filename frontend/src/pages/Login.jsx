@@ -35,8 +35,26 @@ export default function Login({ onSuccess, onSwitchMode }) {
       saveToken(token);
       try { const apiInstance = require('../services/api').default; apiInstance.defaults.headers.common['Authorization'] = `Bearer ${token}`; } catch {}
       if (usuario) saveUsuario(usuario);
-      if (onSuccess) { try { onSuccess('login'); } catch (e) { onSuccess(); } }
-      else nav('/dashboard');
+      // Determinar rol y redirigir al panel admin si corresponde
+      const roleId = usuario?.rol_id || usuario?.rol?.id || usuario?.rolId || usuario?.role_id || usuario?.role;
+      const isAdmin = roleId && Number(roleId) === 1;
+
+      try {
+        if (isAdmin) {
+          // Si es admin, ir al panel de administrador
+          nav('/admin', { replace: true });
+        } else {
+          // No es admin: notificar al padre si existe y navegar al dashboard
+          if (onSuccess) {
+            try { onSuccess('login'); } catch (e) { try { onSuccess(); } catch(_){} }
+          }
+          nav('/dashboard', { replace: true });
+        }
+      } catch (e) {
+        // Fallback
+        if (onSuccess) { try { onSuccess('login'); } catch (ee) { try { onSuccess(); } catch(_){} } }
+        nav('/dashboard', { replace: true });
+      }
     } catch (error) {
       console.error(error);
       setErr(error.response?.data?.error || error.response?.data || error.message);

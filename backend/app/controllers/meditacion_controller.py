@@ -24,3 +24,14 @@ def iniciar_meditacion():
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# Endpoint historial después de la declaración del blueprint
+@meditacion_controller.route('/meditacion/historial', methods=['GET'])
+@jwt_required()
+def historial_meditacion():
+    try:
+        usuario_id = get_jwt_identity()
+        historial = MeditacionService.obtener_historial_meditaciones(usuario_id)
+        return jsonify(historial), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

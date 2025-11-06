@@ -42,7 +42,7 @@ class MeditacionService:
         # Crear sesión
         nueva_sesion = Sesion(
             usuario_id=usuario_id,
-            id_tecnica=tecnica_meditacion.id_tecnica,
+            tecnica_id=tecnica_meditacion.id_tecnica,
             inicio=datetime.utcnow(),
             es_grupal=False,
             estado='EnEjecucion'

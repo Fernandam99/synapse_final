@@ -171,7 +171,7 @@ export default function App() {
       {loadingApp && <Loader size={260} />}
 
       {!loadingApp && (
-        <>
+        <div style={{ display: 'flex', minHeight: '100vh' }}>
           <Suspense fallback={
             <div style={{ height: '60px', backgroundColor: '#f8fafc' }}></div>
           }>
@@ -183,153 +183,151 @@ export default function App() {
               setTheme={setTheme} 
             />
           </Suspense>
-          
-          <AuthModal 
-            open={authOpen} 
-            mode={authMode} 
-            onClose={closeAuth} 
-            onAuthSuccess={onAuthSuccess} 
-            openAuth={openAuth} 
-          />
 
-          <main style={{ 
-            minHeight: 'calc(100vh - 60px - 150px)', 
-            paddingTop: '24px',
-            paddingBottom: '40px'
-          }}>
-            <Suspense fallback={
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                padding: '40px' 
-              }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <AuthModal 
+              open={authOpen} 
+              mode={authMode} 
+              onClose={closeAuth} 
+              onAuthSuccess={onAuthSuccess} 
+              openAuth={openAuth} 
+            />
+
+            <main className="main-with-sidebar" style={{ minHeight: 'calc(100vh - 60px - 150px)', paddingTop: '24px', paddingBottom: '40px' }}>
+              <Suspense fallback={
                 <div style={{ 
-                  padding: '2rem', 
-                  textAlign: 'center', 
-                  color: '#666',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px',
-                  backgroundColor: '#f8fafc'
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  padding: '40px' 
                 }}>
-                  <div style={{ marginBottom: '1rem' }}>Cargando contenido...</div>
                   <div style={{ 
-                    width: '100px', 
-                    height: '100px', 
-                    border: '4px solid #e2e8f0',
-                    borderTopColor: '#7c3aed',
-                    borderRadius: '50%',
-                    margin: '0 auto',
-                    animation: 'spin 1s linear infinite'
-                  }}></div>
-                  <style>{`
-                    @keyframes spin {
-                      from { transform: rotate(0deg); }
-                      to { transform: rotate(360deg); }
-                    }
-                  `}</style>
-                </div>
-              </div>
-            }>
-              <Routes>
-                {/* Páginas públicas */}
-                <Route path="/" element={
-                  <PublicRoute>
-                    <HomePage user={usuario} onAuthClick={openAuth} />
-                  </PublicRoute>
-                } />
-                <Route path="/login" element={<Navigate to="/" replace />} />
-                <Route path="/register" element={<Navigate to="/" replace />} />
-                
-                {/* Páginas privadas */}
-                <Route path="/bienvenida" element={
-                  <PrivateRoute>
-                    <HomePageLogueado />
-                  </PrivateRoute>
-                } />
-                <Route path="/dashboard" element={
-                  <PrivateRoute>
-                    <Dashboard />
-                  </PrivateRoute>
-                } />
-                <Route path="/perfil" element={
-                  <PrivateRoute>
-                    <Profile />
-                  </PrivateRoute>
-                } />
-                <Route path="/meditacion" element={
-                  <PrivateRoute>
-                    <Meditacion />
-                  </PrivateRoute>
-                } />
-                <Route path="/pomodoro" element={
-                  <PrivateRoute>
-                    <Pomodoro />
-                  </PrivateRoute>
-                } />
-                <Route path="/recompensas" element={
-                  <PrivateRoute>
-                    <Recompensas />
-                  </PrivateRoute>
-                } />
-                <Route path="/sesion-grupal" element={
-                  <PrivateRoute>
-                    <SesionGrupal />
-                  </PrivateRoute>
-                } />
-                <Route path="/tareas" element={
-                  <PrivateRoute>
-                    <Tareas />
-                  </PrivateRoute>
-                } />
-                <Route path="/sesiones-tareas" element={
-                  <PrivateRoute>
-                    <SesionesTareas />
-                  </PrivateRoute>
-                } />
-                <Route path="/admin" element={
-                  <PrivateRoute>
-                    <AdminPanel />
-                  </PrivateRoute>
-                } />
-                
-                {/* Redirección por defecto para usuarios logueados */}
-                <Route path="/home" element={<Navigate to="/bienvenida" replace />} />
-                
-                {/* Ruta no encontrada */}
-                <Route path="*" element={
-                  <div style={{ 
-                    padding: '40px', 
-                    textAlign: 'center',
-                    color: '#4b5563'
+                    padding: '2rem', 
+                    textAlign: 'center', 
+                    color: '#666',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc'
                   }}>
-                    <h2>🔍 Página no encontrada</h2>
-                    <p style={{ marginTop: '16px' }}>La página que buscas no existe</p>
-                    <button 
-                      onClick={() => nav('/')}
-                      style={{ 
-                        marginTop: '24px',
-                        background: 'linear-gradient(135deg, #7c3aed, #667eea)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '10px 24px',
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        fontSize: '16px',
-                        fontWeight: '600'
-                      }}
-                    >
-                      Volver al inicio
-                    </button>
+                    <div style={{ marginBottom: '1rem' }}>Cargando contenido...</div>
+                    <div style={{ 
+                      width: '100px', 
+                      height: '100px', 
+                      border: '4px solid #e2e8f0',
+                      borderTopColor: '#7c3aed',
+                      borderRadius: '50%',
+                      margin: '0 auto',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    <style>{`
+                      @keyframes spin {
+                        from { transform: rotate(0deg); }
+                        to { transform: rotate(360deg); }
+                      }
+                    `}</style>
                   </div>
-                } />
-              </Routes>
+                </div>
+              }>
+                <Routes>
+                  {/* Páginas públicas */}
+                  <Route path="/" element={
+                    <PublicRoute>
+                      <HomePage user={usuario} onAuthClick={openAuth} />
+                    </PublicRoute>
+                  } />
+                  <Route path="/login" element={<Navigate to="/" replace />} />
+                  <Route path="/register" element={<Navigate to="/" replace />} />
+                  
+                  {/* Páginas privadas */}
+                  <Route path="/bienvenida" element={
+                    <PrivateRoute>
+                      <HomePageLogueado />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/dashboard" element={
+                    <PrivateRoute>
+                      <Dashboard />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/perfil" element={
+                    <PrivateRoute>
+                      <Profile />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/meditacion" element={
+                    <PrivateRoute>
+                      <Meditacion />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/pomodoro" element={
+                    <PrivateRoute>
+                      <Pomodoro />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/recompensas" element={
+                    <PrivateRoute>
+                      <Recompensas />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/sesion-grupal" element={
+                    <PrivateRoute>
+                      <SesionGrupal />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/tareas" element={
+                    <PrivateRoute>
+                      <Tareas />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/sesiones-tareas" element={
+                    <PrivateRoute>
+                      <SesionesTareas />
+                    </PrivateRoute>
+                  } />
+                  <Route path="/admin" element={
+                    <PrivateRoute>
+                      <AdminPanel />
+                    </PrivateRoute>
+                  } />
+                  
+                  {/* Redirección por defecto para usuarios logueados */}
+                  <Route path="/home" element={<Navigate to="/bienvenida" replace />} />
+                  
+                  {/* Ruta no encontrada */}
+                  <Route path="*" element={
+                    <div style={{ 
+                      padding: '40px', 
+                      textAlign: 'center',
+                      color: '#4b5563'
+                    }}>
+                      <h2>🔍 Página no encontrada</h2>
+                      <p style={{ marginTop: '16px' }}>La página que buscas no existe</p>
+                      <button 
+                        onClick={() => nav('/')}
+                        style={{ 
+                          marginTop: '24px',
+                          background: 'linear-gradient(135deg, #7c3aed, #667eea)',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 24px',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '16px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        Volver al inicio
+                      </button>
+                    </div>
+                  } />
+                </Routes>
+              </Suspense>
+            </main>
+
+            <Suspense fallback={<div style={{ height: '150px' }}></div>}>
+              <Footer />
             </Suspense>
-          </main>
-          
-          <Suspense fallback={<div style={{ height: '150px' }}></div>}>
-            <Footer />
-          </Suspense>
-        </>
+          </div>
+        </div>
       )}
     </ErrorBoundary>
   );
