@@ -1,34 +1,55 @@
-// Este archivo es el punto de entrada principal de la aplicación React, gestionando rutas, temas y autenticación.
 import React, { useState, useEffect, Suspense } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
+import ErrorBoundary from './ErrorBoundary';
 
-// Lazy imports
-const Login = React.lazy(() => import('./pages/Login'));
-const Register = React.lazy(() => import('./pages/Register'));
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
-const HomePage = React.lazy(() => import('./pages/HomePage'));
-const Profile = React.lazy(() => import('./pages/Profile'));
-const Recompensas = React.lazy(() => import('./pages/Recompensas'));
-const Meditacion = React.lazy(() => import('./pages/Meditacion')); // ✅ IMPORTADO
-const SesionGrupal = React.lazy(() => import('./pages/SesionGrupal')); // ✅ IMPORTADO
-const Pomodoro = React.lazy(() => import('./pages/Pomodoro'));
-
-// Componentes comunes
-import PrivateRoute from './components/PrivateRoute';
-import PublicRoute from './components/PublicRoute';
-import AuthModal from './components/AuthModal';
+// Importar loader directamente (no dinámicamente) - ES CRÍTICO
 import Loader from './components/loader';
 
-// Load Navbar defensively
-const Navbar = React.lazy(async () => {
-  const mod = await import('./components/Navbar');
-  const comp = mod.default || mod.Navbar || mod.Topbar || (() => <div />);
-  return { default: comp };
-});
+// Función para importar componentes de forma segura
+const safeLazy = (importFn, fallback = null) => {
+  return React.lazy(() => 
+    importFn().catch(err => {
+      console.error('Error al cargar componente:', err);
+      return fallback || { 
+        default: () => (
+          <div style={{ 
+            padding: '2rem', 
+            textAlign: 'center', 
+            color: '#666',
+            minHeight: '200px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <p>⚠️ Componente no disponible temporalmente</p>
+          </div>
+        ) 
+      };
+    })
+  );
+};
 
-import Footer from './components/Footer';
+// Importar componentes usando safeLazy
+const Login = safeLazy(() => import('./pages/Login'));
+const Register = safeLazy(() => import('./pages/Register'));
+const Dashboard = safeLazy(() => import('./pages/Dashboard'));
+const HomePage = safeLazy(() => import('./pages/HomePage'));
+const Profile = safeLazy(() => import('./pages/Profile'));
+const Meditacion = safeLazy(() => import('./pages/Meditacion'));
+const Pomodoro = safeLazy(() => import('./pages/Pomodoro'));
+const AdminPanel = safeLazy(() => import('./pages/AdminPanel'));
+
+// Importar componentes comunes
+const Navbar = safeLazy(() => import('./components/Navbar'));
+const Footer = safeLazy(() => import('./components/Footer'));
+const AuthModal = safeLazy(() => import('./components/AuthModal'));
+
+// Componentes de ruta
+import PrivateRoute from './components/PrivateRoute';
+import PublicRoute from './components/PublicRoute';
+
+// Servicios de autenticación
 import { logout as doLogout, getUsuario } from './services/auth';
-import AdminPanel from './pages/AdminPanel';
 
 export default function App() {
   const [loadingApp, setLoadingApp] = useState(true);
@@ -43,50 +64,59 @@ export default function App() {
     }
   });
 
-  // Apply theme
+  // Aplicar tema
   useEffect(() => {
     try {
       document.documentElement.setAttribute('data-theme', theme);
       window.localStorage.setItem('theme', theme);
     } catch (e) {
-      // ignore
+      console.warn('Error guardando tema:', e);
     }
   }, [theme]);
 
-  // ✅ Loader seguro: siempre termina
+  // Loader seguro con tiempo máximo
   useEffect(() => {
-    let mounted = true;
-    const run = async () => {
-      try {
-        if (document.readyState !== 'complete') {
-          await new Promise((res) => window.addEventListener('load', res, { once: true }));
-        }
-        await new Promise((res) => setTimeout(res, 300));
-      } catch (e) {
-        console.warn('App loader warning:', e);
-      } finally {
-        if (mounted) setLoadingApp(false);
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      if (isMounted) {
+        setLoadingApp(false);
       }
+    }, 1000); // Tiempo máximo de espera para el loader
+
+    // Forzar finalización del loader después de 3 segundos como máximo
+    const timeoutFallback = setTimeout(() => {
+      if (isMounted) {
+        console.warn('Tiempo de carga excedido, forzando renderizado');
+        setLoadingApp(false);
+      }
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      clearTimeout(timeoutFallback);
     };
-    run();
-    return () => { mounted = false; };
   }, []);
 
   const nav = useNavigate();
 
-  const openAuth = (mode = 'login') => { setAuthMode(mode); setAuthOpen(true); };
+  const openAuth = (mode = 'login') => { 
+    setAuthMode(mode); 
+    setAuthOpen(true); 
+  };
+  
   const closeAuth = () => setAuthOpen(false);
 
   const handleLogout = () => {
     setAuthOpen(false);
     try {
       doLogout();
+      setUsuario(null);
+      nav('/', { replace: true });
     } catch (e) {
+      console.error('Error en logout:', e);
       window.location.href = '/';
-      return;
     }
-    setUsuario(null);
-    try { nav('/', { replace: true }); } catch (e) { /* ignore */ }
   };
 
   const onAuthSuccess = (fromMode) => {
@@ -95,48 +125,174 @@ export default function App() {
       setAuthOpen(true);
       return;
     }
-    setAuthOpen(false);
-    try { nav('/dashboard', { replace: true }); } catch (e) { /* ignore */ }
+    closeAuth();
     setUsuario(getUsuario());
+    nav('/dashboard', { replace: true });
   };
 
+  // Verificación periódica de autenticación
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const storedUser = getUsuario();
+        if (!storedUser && usuario) {
+          setUsuario(null);
+        } else if (storedUser && !usuario) {
+          setUsuario(storedUser);
+        }
+      } catch (e) {
+        console.error('Error verificando autenticación:', e);
+        doLogout();
+        setUsuario(null);
+        window.location.href = '/';
+      }
+    };
+
+    checkAuth();
+    const interval = setInterval(checkAuth, 300000); // Verificar cada 5 minutos
+    return () => clearInterval(interval);
+  }, [usuario]);
+
   return (
-    <>
+    <ErrorBoundary>
       {/* Fullscreen startup loader */}
-      {loadingApp && (
-        <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-surface, #ffffff)', zIndex: 9999 }}>
-          <Loader size={260} />
-        </div>
+      {loadingApp && <Loader size={260} />}
+
+      {!loadingApp && (
+        <>
+          <Suspense fallback={
+            <div style={{ height: '60px', backgroundColor: '#f8fafc' }}></div>
+          }>
+            <Navbar 
+              user={usuario} 
+              onAuthClick={openAuth} 
+              onLogout={handleLogout} 
+              theme={theme} 
+              setTheme={setTheme} 
+            />
+          </Suspense>
+          
+          <AuthModal 
+            open={authOpen} 
+            mode={authMode} 
+            onClose={closeAuth} 
+            onAuthSuccess={onAuthSuccess} 
+            openAuth={openAuth} 
+          />
+
+          <main style={{ 
+            minHeight: 'calc(100vh - 60px - 150px)', 
+            paddingTop: '24px',
+            paddingBottom: '40px'
+          }}>
+            <Suspense fallback={
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                padding: '40px' 
+              }}>
+                <div style={{ 
+                  padding: '2rem', 
+                  textAlign: 'center', 
+                  color: '#666',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  backgroundColor: '#f8fafc'
+                }}>
+                  <div style={{ marginBottom: '1rem' }}>Cargando contenido...</div>
+                  <div style={{ 
+                    width: '100px', 
+                    height: '100px', 
+                    border: '4px solid #e2e8f0',
+                    borderTopColor: '#7c3aed',
+                    borderRadius: '50%',
+                    margin: '0 auto',
+                    animation: 'spin 1s linear infinite'
+                  }}></div>
+                  <style>{`
+                    @keyframes spin {
+                      from { transform: rotate(0deg); }
+                      to { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </div>
+              </div>
+            }>
+              <Routes>
+                {/* Páginas públicas */}
+                <Route path="/" element={
+                  <PublicRoute>
+                    <HomePage user={usuario} onAuthClick={openAuth} />
+                  </PublicRoute>
+                } />
+                <Route path="/login" element={<Navigate to="/" replace />} />
+                <Route path="/register" element={<Navigate to="/" replace />} />
+                
+                {/* Páginas privadas */}
+                <Route path="/dashboard" element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                } />
+                <Route path="/perfil" element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                } />
+                <Route path="/meditacion" element={
+                  <PrivateRoute>
+                    <Meditacion />
+                  </PrivateRoute>
+                } />
+                <Route path="/pomodoro" element={
+                  <PrivateRoute>
+                    <Pomodoro />
+                  </PrivateRoute>
+                } />
+                
+                {/* Admin */}
+                <Route path="/admin" element={
+                  <PrivateRoute>
+                    <AdminPanel />
+                  </PrivateRoute>
+                } />
+                
+                {/* Ruta no encontrada */}
+                <Route path="*" element={
+                  <div style={{ 
+                    padding: '40px', 
+                    textAlign: 'center',
+                    color: '#4b5563'
+                  }}>
+                    <h2>🔍 Página no encontrada</h2>
+                    <p style={{ marginTop: '16px' }}>La página que buscas no existe</p>
+                    <button 
+                      onClick={() => nav('/')}
+                      style={{ 
+                        marginTop: '24px',
+                        background: 'linear-gradient(135deg, #7c3aed, #667eea)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 24px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '16px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Volver al inicio
+                    </button>
+                  </div>
+                } />
+              </Routes>
+            </Suspense>
+          </main>
+          
+          <Suspense fallback={<div style={{ height: '150px' }}></div>}>
+            <Footer />
+          </Suspense>
+        </>
       )}
-
-      <Suspense fallback={null}>
-        <Navbar user={usuario} onAuthClick={openAuth} onLogout={handleLogout} theme={theme} setTheme={setTheme} />
-      </Suspense>
-      <AuthModal open={authOpen} mode={authMode} onClose={closeAuth} onAuthSuccess={onAuthSuccess} openAuth={openAuth} />
-
-      <Suspense fallback={<div style={{ padding: 20 }}>Cargando...</div>}>
-        <Routes>
-          {/* Redirecciones de login/register */}
-          <Route path="/login" element={<Navigate to="/" replace />} />
-          <Route path="/register" element={<Navigate to="/" replace />} />
-
-          {/* Páginas privadas */}
-          <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-          <Route path="/perfil" element={<PrivateRoute><Profile /></PrivateRoute>} />
-          <Route path="/concentracion" element={<PrivateRoute><Concentracion /></PrivateRoute>} />
-          <Route path="/meditacion" element={<PrivateRoute><Meditacion /></PrivateRoute>} />
-          <Route path="/sesion-grupal" element={<PrivateRoute><SesionGrupal /></PrivateRoute>} /> 
-          <Route path="/pomodoro" element={<PrivateRoute><Pomodoro /></PrivateRoute>} />
-          <Route path="/config" element={<PrivateRoute><Profile defaultTab="settings" /></PrivateRoute>} />
-
-          {/* Página principal */}
-          <Route path="/" element={<PublicRoute><HomePage user={usuario} onAuthClick={openAuth} /></PublicRoute>} />
-
-          {/* Admin */}
-          <Route path="/admin" element={<AdminPanel />} />
-        </Routes>
-      </Suspense>
-      <Footer />
-    </>
+    </ErrorBoundary>
   );
 }
