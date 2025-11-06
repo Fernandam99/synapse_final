@@ -2,24 +2,26 @@
 import api from './api';
 
 const meditacionService = {
-    // Iniciar una nueva sesión de meditación
+    // Confirmar inicio de sesión en frontend (no crea sesión en DB)
     iniciar: async (data) => {
         try {
             const response = await api.post('/bienestar/meditacion/iniciar', data);
+            console.log("Respuesta iniciar meditación (frontend):", response.data); // Log para depuración
             return response.data;
         } catch (error) {
-            console.error('Error al iniciar meditación:', error);
+            console.error('Error al confirmar inicio de meditación:', error);
             throw error;
         }
     },
 
-    // Finalizar una sesión de meditación
-    finalizar: async (data) => {
+    // Guardar sesión finalizada en la base de datos
+    guardar: async (data) => {
         try {
-            const response = await api.post('/bienestar/meditacion/finalizar', data);
+            const response = await api.post('/bienestar/meditacion/guardar', data);
+            console.log("Respuesta guardar meditación:", response.data); // Log para depuración
             return response.data;
         } catch (error) {
-            console.error('Error al finalizar meditación:', error);
+            console.error('Error al guardar meditación:', error);
             throw error;
         }
     },
@@ -28,14 +30,25 @@ const meditacionService = {
     getHistorial: async () => {
         try {
             const response = await api.get('/bienestar/meditacion/historial');
-            return Array.isArray(response.data) ? response.data : [];
+            console.log("Respuesta historial meditación:", response.data); // Log para depuración
+            return Array.isArray(response.data) ? response.data : response.data.historial || [];
         } catch (error) {
             console.error('Error al obtener historial de meditación:', error);
-            // Retornar un array vacío en caso de error para evitar fallos en la UI
+            return [];
+        }
+    },
+
+    // Obtener tipos de meditación
+    getTipos: async () => {
+        try {
+            const response = await api.get('/bienestar/meditacion/tipos');
+            console.log("Respuesta tipos meditación:", response.data); // Log para depuración
+            return Array.isArray(response.data) ? response.data : [];
+        } catch (error) {
+            console.error('Error al obtener tipos de meditación:', error);
             return [];
         }
     }
 };
 
-// Exportación por defecto para que funcione con import meditacionService from '...'
 export default meditacionService;

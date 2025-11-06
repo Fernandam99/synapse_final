@@ -1,19 +1,14 @@
+// frontend/src/pages/Profile.jsx
 import React, { useEffect, useState } from 'react';
 import { Edit2, Phone, Calendar, MapPin, Trash2 } from 'lucide-react';
-import api from '../services/api';
+import perfilService from '../services/perfil'; // Importamos el nuevo servicio
 import EditProfileModal from '../components/EditProfileModal';
 import { logout } from '../services/auth';
 import '../components/ProfileSettings.css';
 
 export default function Profile({ defaultTab = 'info' }) {
-  const [usuario, setUsuario] = useState(() => {
-    try {
-      const cached = localStorage.getItem('synapse_usuario');
-      return cached ? JSON.parse(cached) : null;
-    } catch (e) {
-      return null;
-    }
-  });
+  const [usuario, setUsuario] = useState(null); // Cambiado: inicialmente null
+  const [loading, setLoading] = useState(true); // Añadido: estado de carga
   const [tareas, setTareas] = useState([]);
   const [logros] = useState([
     { nombre: 'Meditador Novato', icono: '🎯' },
@@ -28,41 +23,65 @@ export default function Profile({ defaultTab = 'info' }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/auth/me');
-        setUsuario(res.data);
-      } catch (e) {
-        console.error('Error cargando usuario:', e);
-        setUsuario({
-          username: 'Usuario',
-          correo: '',
-          telefono: '',
-          ubicacion: '',
-          fecha_nacimiento: null,
-          avatar_url: null,
-          nivel: 1,
-          sesiones: 0,
-          meditadas: '0h',
-          descripcion: ''
-        });
-      }
+  // Función para cargar el perfil desde el backend
+  const loadPerfil = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const perfilData = await perfilService.getPerfil();
+      setUsuario(perfilData);
+      // Opcional: Actualizar localStorage con los datos frescos
+      try { localStorage.setItem('synapse_usuario', JSON.stringify(perfilData)); } catch(e) {}
+    } catch (error) {
+        console.error('Error cargando perfil:', error);
+        setError('No se pudo cargar la información del perfil.');
+        setUsuario(null); // O manejar el error como prefieras
+    } finally {
+        setLoading(false);
+    }
+  };
 
+  // Cargar perfil y tareas al montar el componente
+  useEffect(() => {
+    loadPerfil();
+
+    // Cargar tareas u otros datos si es necesario
+    const loadTareas = async () => {
       try {
-        const res2 = await api.get('/tareas');
+        const res2 = await perfilService.getTareas(); // Asumiendo que perfilService también maneja tareas
         setTareas(Array.isArray(res2.data) ? res2.data : res2.data.results || []);
       } catch (e) {
         console.error('Error cargando tareas:', e);
         setTareas([]);
       }
     };
-    load();
+    loadTareas();
   }, []);
+
+  const handleSaveChanges = async (updatedData) => { // Función para guardar cambios
+    try {
+      const formData = new FormData(); // Usar FormData para enviar datos y archivo
+      Object.keys(updatedData).forEach(key => {
+        if (updatedData[key] !== undefined && updatedData[key] !== null) {
+          formData.append(key, updatedData[key]);
+        }
+      });
+
+      const updatedUsuario = await perfilService.updatePerfil(formData); // Usar el servicio
+      setUsuario(updatedUsuario); // Actualizar estado local con respuesta
+      // Opcional: Actualizar localStorage
+      try { localStorage.setItem('synapse_usuario', JSON.stringify(updatedUsuario)); } catch(e) {}
+      // Opcional: Cerrar el modal o mostrar mensaje de éxito
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error al guardar cambios:', error);
+      setError(error.response?.data?.error || 'No se pudo actualizar el perfil.');
+    }
+  };
 
   const handleDeleteAccount = async () => {
     try {
-      await api.post('/auth/delete-account', { password });
+      await perfilService.deleteAccount(password); // Asumiendo que perfilService lo maneja
       logout();
     } catch (error) {
       setError(error.response?.data?.error || 'Error al eliminar la cuenta');
@@ -71,7 +90,7 @@ export default function Profile({ defaultTab = 'info' }) {
 
   const handleLogoutAllDevices = async () => {
     try {
-      await api.post('/auth/logout-all-devices', { password });
+      await perfilService.logoutAllDevices(password); // Asumiendo que perfilService lo maneja
       logout();
     } catch (error) {
       setError(error.response?.data?.error || 'Error al cerrar sesión en todos los dispositivos');
@@ -113,36 +132,26 @@ export default function Profile({ defaultTab = 'info' }) {
     if (!usuario) return;
     if (!window.confirm('¿Eliminar la foto de perfil?')) return;
     try {
-      const fd = new FormData();
-      fd.append('remove_avatar', '1');
-      const res = await api.put('/auth/me', fd);
-      setUsuario(res.data);
-      try { localStorage.setItem('synapse_usuario', JSON.stringify(res.data)); } catch(e){}
+      await handleSaveChanges({ remove_avatar: '1' });
     } catch (e) {
       console.error('Error eliminando avatar:', e);
-      alert('No se pudo eliminar la foto');
+      setError('No se pudo eliminar la foto.');
     }
   };
 
-  const handleDescripcionBlur = async () => {
-    if (!usuario) return;
-    try {
-      const fd = new FormData();
-      fd.append('descripcion', usuario.descripcion || '');
-      const res = await api.put('/auth/me', fd);
-      setUsuario(res.data);
-      try {
-        localStorage.setItem('synapse_usuario', JSON.stringify(res.data));
-      } catch (e) {
-        console.error('Error guardando en localStorage:', e);
-      }
-    } catch (e) {
-      console.error('Error actualizando descripción:', e);
-      alert('No se pudo actualizar la descripción');
-    }
-  };
+  // Si loading es true, mostramos un indicador
+  if (loading) {
+    return <div style={{ padding: 20, textAlign: 'center' }}>Cargando perfil...</div>;
+  }
 
-  if (!usuario) return <div style={{ padding: 20 }}>Cargando perfil...</div>;
+  // Si no hay usuario después de cargar, mostramos error o mensaje
+  if (!usuario) {
+    return (
+      <div style={{ padding: 20, textAlign: 'center' }}>
+        {error || 'No se pudo cargar el perfil.'}
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -222,12 +231,12 @@ export default function Profile({ defaultTab = 'info' }) {
       {tab === 'settings' && (
         <div className="settings-section">
           {error && <div className="error-message">{error}</div>}
-          
+
           <div className="settings-group">
             <h3>Seguridad de la Cuenta</h3>
-            
+
             <div className="settings-option">
-              <button 
+              <button
                 className="danger-button"
                 onClick={() => setShowLogoutAllConfirm(true)}
               >
@@ -236,7 +245,7 @@ export default function Profile({ defaultTab = 'info' }) {
             </div>
 
             <div className="settings-option">
-              <button 
+              <button
                 className="danger-button"
                 onClick={() => setShowDeleteConfirm(true)}
               >
@@ -258,7 +267,7 @@ export default function Profile({ defaultTab = 'info' }) {
                   placeholder="Contraseña"
                 />
                 <div className="modal-actions">
-                  <button 
+                  <button
                     className="cancel-button"
                     onClick={() => {
                       setShowLogoutAllConfirm(false);
@@ -268,7 +277,7 @@ export default function Profile({ defaultTab = 'info' }) {
                   >
                     Cancelar
                   </button>
-                  <button 
+                  <button
                     className="confirm-button"
                     onClick={handleLogoutAllDevices}
                   >
@@ -293,7 +302,7 @@ export default function Profile({ defaultTab = 'info' }) {
                   placeholder="Contraseña"
                 />
                 <div className="modal-actions">
-                  <button 
+                  <button
                     className="cancel-button"
                     onClick={() => {
                       setShowDeleteConfirm(false);
@@ -303,7 +312,7 @@ export default function Profile({ defaultTab = 'info' }) {
                   >
                     Cancelar
                   </button>
-                  <button 
+                  <button
                     className="confirm-button danger"
                     onClick={handleDeleteAccount}
                   >
@@ -553,7 +562,7 @@ export default function Profile({ defaultTab = 'info' }) {
                 placeholder="Añade una breve biografía sobre ti."
                 value={usuario.descripcion || ''}
                 onChange={e => setUsuario(u => ({ ...u, descripcion: e.target.value }))}
-                onBlur={handleDescripcionBlur}
+                onBlur={() => handleSaveChanges({ descripcion: usuario.descripcion || '' })} // Guardar al perder foco
                 style={{
                   width: '100%',
                   padding: 10,
@@ -594,6 +603,7 @@ export default function Profile({ defaultTab = 'info' }) {
         onClose={() => setModalOpen(false)}
         usuario={usuario}
         onUpdated={handleModalUpdated}
+        onSaveChanges={handleSaveChanges} // Pasar la función al modal
       />
     </div>
   );

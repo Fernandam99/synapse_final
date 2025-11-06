@@ -12,9 +12,9 @@ export default function Meditacion() {
     const [isRunning, setIsRunning] = useState(false);
     const [duracion, setDuracion] = useState(10);
     const [tipo, setTipo] = useState('mindfulness');
-    const [sessionId, setSessionId] = useState(null);
+    const [sessionId, setSessionId] = useState(null); // Este ID ahora es temporal o no se usa hasta guardar
 
-    // ✅ Datos dinámicos desde API
+    // Datos dinámicos desde API
     const [stats, setStats] = useState({
         weekMinutes: 0,
         completedSessions: 0,
@@ -24,7 +24,7 @@ export default function Meditacion() {
     const [progressData, setProgressData] = useState([]);
     const [loadingStats, setLoadingStats] = useState(true);
 
-    // ✅ Cargar datos desde API al montar el componente
+    // Cargar datos desde API al montar el componente
     useEffect(() => {
         const cargarDatos = async () => {
             try {
@@ -37,7 +37,8 @@ export default function Meditacion() {
 
                 const sesionesCompletadas = historial.filter(s => s.estado === 'Completado');
                 const completadasEstaSemana = sesionesCompletadas.filter(s => {
-                    const fecha = new Date(s.inicio);
+                    const fecha = new Date(s.fecha_inicio || s.fecha); // Ajusta según el formato real
+                    if (isNaN(fecha.getTime())) return false; // Manejar fechas inválidas
                     return fecha >= hace7dias && fecha <= hoy;
                 });
 
@@ -57,7 +58,10 @@ export default function Meditacion() {
                     const fecha = new Date(hace7dias);
                     fecha.setDate(hace7dias.getDate() + i);
                     const minutos = completadasEstaSemana
-                        .filter(s => new Date(s.inicio).toDateString() === fecha.toDateString())
+                        .filter(s => {
+                            const sFecha = new Date(s.fecha_inicio || s.fecha);
+                            return !isNaN(sFecha.getTime()) && sFecha.toDateString() === fecha.toDateString();
+                        })
                         .reduce((sum, s) => sum + (s.duracion_real || 0), 0);
                     return { day: dia, minutes: minutos };
                 });
@@ -87,8 +91,8 @@ export default function Meditacion() {
         if (historial.length === 0) return 0;
         const fechasCompletadas = [...new Set(
             historial
-                .filter(s => s.estado === 'Completado')
-                .map(s => new Date(s.inicio).toDateString())
+                .filter(s => s.estado === 'Completado' && s.fecha_inicio)
+                .map(s => new Date(s.fecha_inicio).toDateString())
         )].sort((a, b) => new Date(b) - new Date(a));
 
         let racha = 0;
@@ -113,7 +117,7 @@ export default function Meditacion() {
         if (isRunning && timer > 0) {
             interval = setInterval(() => setTimer(t => t - 1), 1000);
         } else if (timer === 0 && isRunning) {
-            finalizarSesion(true);
+            finalizarSesion(true); // Completada por tiempo
         }
         return () => clearInterval(interval);
     }, [isRunning, timer]);
@@ -126,13 +130,13 @@ export default function Meditacion() {
 
     const startMeditacion = async () => {
         try {
-            const payload = { duracion: duracion, tipo_meditacion: tipo };
-            const res = await meditacionService.iniciar(payload);
-            const sesionId = res.meditacion?.sesion_id || res.sesion_id;
-            if (!sesionId) throw new Error('No se recibió ID de sesión');
-            setSessionId(sesionId);
+            // Confirmar inicio con el backend (opcional, solo para validaciones)
+            const payload_inicio = { duracion: duracion, tipo_meditacion: tipo };
+            await meditacionService.iniciar(payload_inicio);
+            // No esperamos un ID de sesión aquí
             setTimer(duracion * 60);
             setIsRunning(true);
+            // No necesitamos setSessionId aquí, se generará al guardar
         } catch (err) {
             console.error('Error al iniciar meditación:', err);
             alert(err.response?.data?.error || 'No se pudo iniciar la meditación');
@@ -140,30 +144,93 @@ export default function Meditacion() {
     };
 
     const finalizarSesion = async (completada = false) => {
-        if (!sessionId) return;
+        if (!isRunning) return; // Si no está corriendo, no hacer nada
+
+        setIsRunning(false); // Detener temporizador
+
         try {
-            await meditacionService.finalizar({
-                completado_totalmente: completada,
+            // Calcular duración real (tiempo transcurrido)
+            const duracion_planificada = duracion;
+            const duracion_real = duracion_planificada * 60 - timer; // Segundos transcurridos
+
+            // Obtener tecnica_id (asumiendo que 'Meditación' tiene un ID fijo o se consulta)
+            // Por simplicidad, asumiremos que el frontend conoce el ID de la técnica 'Meditación'
+            // Puedes obtenerlo desde un servicio o tenerlo como constante si es fijo
+            // const tecnicaId = '...'; // Obtener de forma dinámica o constante
+            // Por ahora, asumiremos que se puede obtener o se pasa como parámetro
+            // Lo ideal es que el backend lo asigne al encontrar la técnica por nombre
+            // Modificamos el servicio para que obtenga la técnica por nombre si es necesario
+            // Pero para esta implementación, lo pasamos como parte del payload o lo dejamos en el backend
+            // La mejor práctica es que el backend lo asigne. Modificamos el payload para incluir el nombre o ID si es requerido.
+            // Lo ideal es que el frontend solo envíe el nombre y el backend lo resuelva.
+            // Pero para mantener la consistencia con el modelo, enviamos el ID.
+            // Vamos a asumir que el ID de 'Meditación' se obtiene de forma estática o se consulta antes.
+            // Por simplicidad, lo dejamos como un parámetro que el backend debe resolver internamente o se lo pasamos si lo tiene el frontend.
+            // La opción más limpia es que el backend lo resuelva.
+            // Modificamos el servicio backend para que busque la tecnica_id por nombre 'Meditación' si no se provee.
+            // Pero para el payload, enviamos nombre o ID. Asumiremos que el frontend puede obtener el ID de 'Meditación'.
+            // Vamos a hacer una pequeña modificación en el backend para que asigne la tecnica_id si no se provee o se provee el nombre.
+            // Pero por ahora, el payload debe incluir tecnica_id.
+            // Supongamos que el frontend tiene una forma de obtener el ID de la técnica 'Meditación'.
+            // Por ejemplo, una llamada inicial para obtener los IDs de técnicas comunes.
+            // O simplemente lo tiene como constante si no cambia.
+            const tecnica_nombre = 'Meditación';
+            // En el backend, podemos hacer que si tecnica_id no se provee, busque por nombre 'Meditación'
+            // O el frontend debe asegurarse de tener el ID.
+            // Vamos a asumir que el frontend tiene una forma de obtener el ID de 'Meditación'.
+            // Supongamos que lo obtenemos al cargar la página o se lo pasamos como constante.
+            // Por simplicidad en este ejemplo, lo pasamos como constante o lo obtenemos de otra manera.
+            // Lo ideal es tener un servicio que obtenga las técnicas y sus IDs.
+            // const tecnicaId = await getTecnicaIdByName('Meditación'); // Esta función debería existir o se usa un cache
+            // Por ahora, como no tenemos un servicio dedicado, asumiremos que el ID se puede obtener o se lo pasamos.
+            // Vamos a modificar el backend para que si tecnica_id no se provee, lo busque por nombre.
+            // Entonces, el frontend solo envía el nombre.
+            // Modificamos el backend para que acepte tecnica_nombre y resuelva el ID.
+            // Opciones:
+            // 1- El frontend envía tecnica_nombre y el backend lo resuelve.
+            // 2- El frontend ya tiene tecnica_id y lo envía.
+            // Opción 1 es más limpia para el frontend.
+            // Modificamos el backend para que maneje tecnica_nombre.
+            // En el backend, dentro de guardar_sesion_finalizada, si tecnica_id no está, buscar por nombre.
+            // Entonces, el payload puede ser:
+            const payload_guardar = {
+                // tecnica_id: tecnicaId, // Opcional si se envía nombre
+                tecnica_nombre: tecnica_nombre, // Enviamos nombre
+                duracion_planificada: duracion_planificada,
+                duracion_real: Math.floor(duracion_real / 60), // Pasar minutos
+                tipo_meditacion: tipo,
+                estado: completada ? 'Completado' : 'Cancelado',
                 calificacion: completada ? 5 : null
-            });
+            };
+
+            // Llamar al nuevo endpoint para guardar la sesión
+            await meditacionService.guardar(payload_guardar);
+
+            // Opcional: Recargar historial/stats después de guardar
+            // cargarDatos(); // Si se quiere refrescar inmediatamente
+
         } catch (err) {
-            console.error('Error al finalizar meditación:', err);
-            alert(err.response?.data?.error || 'Error al finalizar');
+            console.error('Error al guardar meditación:', err);
+            alert(err.response?.data?.error || 'Error al guardar la sesión');
+            // Opcional: manejar error, tal vez reintentar o mostrar mensaje más específico
         } finally {
-            setIsRunning(false);
-            setSessionId(null);
+            // Resetear estado de la sesión local
+            setTimer(duracion * 60);
+            // sessionId ya no es necesario mantenerlo como estado global para la sesión activa
         }
     };
 
     const resetTimer = () => {
-        if (isRunning && sessionId) {
-            finalizarSesion(false);
+        if (isRunning) {
+            finalizarSesion(false); // Cancelar si está corriendo
+        } else {
+            // Si no está corriendo, solo resetear el temporizador visual
+            setTimer(duracion * 60);
         }
-        setTimer(duracion * 60);
     };
 
     return (
-        <div className="meditacion-app"> {/* ✅ Cambiado a meditacion-app para evitar conflicto */}
+        <div className="meditacion-app">
             <div className="container">
                 <div className="header">
                     <h1 className="header-title">{t('meditation')}</h1>
@@ -295,7 +362,7 @@ export default function Meditacion() {
             </div>
 
             <style jsx>{`
-        .meditacion-app { /* ✅ Cambiado el nombre del contenedor */
+        .meditacion-app {
           min-height: 100vh;
           background: linear-gradient(135deg, #faf5ff 0%, #fef3f9 50%, #f0f9ff 100%);
           padding: 32px;
